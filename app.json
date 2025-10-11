@@ -16,7 +16,8 @@
         "foregroundImage": "./assets/images/aga.jpg",
         "backgroundColor": "#ffffff"
       },
-      "edgeToEdgeEnabled": true
+      "edgeToEdgeEnabled": true,
+      "package": "com.engineer0099.AGA"
     },
     "web": {
       "bundler": "metro",
@@ -38,6 +39,12 @@
     ],
     "experiments": {
       "typedRoutes": true
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "1b3eb6b1-61bc-46b6-89bb-1c68ce905f13"
+      }
     }
   }
 }

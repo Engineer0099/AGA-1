@@ -1,17 +1,20 @@
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert, ActivityIndicator } from 'react-native';
+import { databases } from '@/lib/appwrite';
 import { Ionicons } from '@expo/vector-icons';
+import NetInfo from '@react-native-community/netinfo';
+import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
+import { useEffect, useState } from 'react';
+import { ActivityIndicator, Alert, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useLocalSearchParams, useRouter, Stack } from 'expo-router';
-import { useState, useEffect } from 'react';
+
 
 type User = {
   id: string;
   name: string;
   email: string;
-  role: 'admin' | 'teacher' | 'student';
-  status: 'active' | 'inactive' | 'suspended';
+  role: 'admin' | 'student';
+  active: 'true' | 'false' ;
   lastActive: string;
-  joinedDate: string;
+  $createdAt: string;
   totalUploads: number;
   lastLogin: string;
   bio?: string;
@@ -22,30 +25,31 @@ const UserDetailScreen = () => {
   const { id } = useLocalSearchParams<{ id: string }>();
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
-  const [editing, setEditing] = useState(false);
+  const [editing, setEditing] = useState(false); 
+
+  const loadUserByIdFromDB = async () => {
+    try{
+        const loadedPaper = await databases.getDocument(
+        '68ca66480039a017b799',
+        'user',
+        id as string
+      )
+      return loadedPaper;
+    }catch(error){
+      console.error('Error Loading Paper from Database', error)
+      return []
+    }
+    
+  };
   
-  // Mock data fetch - replace with actual API call
+  
   useEffect(() => {
     const fetchUser = async () => {
       try {
-        // Simulate API call
-        await new Promise(resolve => setTimeout(resolve, 800));
+        const user = await loadUserByIdFromDB() as any;
+        console.log('Fetched user:', user);
         
-        // Mock user data
-        const mockUser: User = {
-          id: id || '1',
-          name: 'John Doe',
-          email: 'john@example.com',
-          role: 'student',
-          status: 'active',
-          lastActive: '2 hours ago',
-          joinedDate: '2023-01-15',
-          totalUploads: 24,
-          lastLogin: '2023-10-25T14:30:00Z',
-          bio: 'Active student in the Computer Science department.'
-        };
-        
-        setUser(mockUser);
+        setUser(user);
       } catch (error) {
         console.error('Error fetching user:', error);
         Alert.alert('Error', 'Failed to load user data');
@@ -61,31 +65,74 @@ const UserDetailScreen = () => {
     router.back();
   };
 
+  const isOnline = async () => {
+    const state = await NetInfo.fetch();
+    return state.isConnected && state.isInternetReachable;
+  };
+
+
   const handleEdit = () => {
     setEditing(!editing);
     // In a real app, this would open an edit form
   };
 
-  const handleStatusChange = (newStatus: 'active' | 'inactive' | 'suspended') => {
+  const handleStatusChange = async (newStatus: 'true' | 'false') => {
+    const status = newStatus === 'true' ? true : false;
     if (user) {
-      setUser({ ...user, status: newStatus });
-      // In a real app, this would call an API to update the status
+      try {
+        setLoading(true);
+        const updatedStatus = await databases.updateDocument(
+          '68ca66480039a017b799',
+          'user',
+          id as string,
+          { active: status }
+        );
+        setUser(updatedStatus as any);
+        setUser({ ...user, active: newStatus });
+        Alert.alert('Success', `User status updated to ${newStatus === 'true' ? 'Active' : 'Suspended'}`);
+      } catch (error) {
+        console.error('Error updating user status:', error);
+        Alert.alert('Error', 'Failed to update user status. Please try again.');
+      } finally {
+        setLoading(false);
+      }
     }
   };
 
-  const getStatusColor = (status: string) => {
+  const changeUserRole = async (newRole: 'admin' | 'student') => {
+    if (user) {
+      try {
+        setLoading(true);
+        const updatedUser = await databases.updateDocument(
+          '68ca66480039a017b799',
+          'user',
+          id as string,
+          { role: newRole }
+        );
+        setUser(updatedUser as any);
+        setUser({ ...user, role: newRole });
+        Alert.alert('Success', `User role updated to ${newRole}`);
+      } catch (error) {
+        console.error('Error updating user role:', error);
+        Alert.alert('Error', 'Failed to update user role. Please try again.');
+      } finally {
+        setLoading(false);
+      }
+      
+    }
+  };
+
+  const getStatusColor = (status: boolean) => {
     switch (status) {
-      case 'active': return '#10B981';
-      case 'inactive': return '#6B7280';
-      case 'suspended': return '#EF4444';
-      default: return '#6B7280';
+      case true: return '#10B981'; // Green for active
+      case false: return '#EF4444'; // Red for suspended
+      default: return '#9CA3AF'; // Gray for unknown
     }
   };
 
   const getRoleColor = (role: string) => {
     switch (role) {
       case 'admin': return '#4F46E5';
-      case 'teacher': return '#10B981';
       case 'student': return '#F59E0B';
       default: return '#94A3B8';
     }
@@ -94,19 +141,27 @@ const UserDetailScreen = () => {
   if (loading) {
     return (
       <View style={styles.loadingContainer}>
+        <Text>Loading User...</Text>
         <ActivityIndicator size="large" color="#4A6FA5" />
       </View>
     );
   }
 
+  
+
   if (!user) {
     return (
       <View style={styles.container}>
         <Text>User not found</Text>
+        <Ionicons name="alert-circle-outline" size={48} color="#EF4444" />
+        <TouchableOpacity onPress={handleBack} style={{ marginTop: 20 }}>
+          <Text style={{ color: '#4A6FA5' }}>Go Back</Text>
+        </TouchableOpacity>
       </View>
     );
   }
 
+  
   return (
     <SafeAreaView style={styles.container}>
       <Stack.Screen 
@@ -141,13 +196,15 @@ const UserDetailScreen = () => {
             <Ionicons name="person-circle" size={80} color="#9CA3AF" />
           </View>
           <Text style={styles.userName}>{user.name}</Text>
-          <View style={[styles.statusBadge, { backgroundColor: getStatusColor(user.status) + '20' }]}>
-            <View style={[styles.statusDot, { backgroundColor: getStatusColor(user.status) }]} />
-            <Text style={[styles.statusText, { color: getStatusColor(user.status) }]}>
-              {user.status.charAt(0).toUpperCase() + user.status.slice(1)}
+          <View style={[styles.statusBadge, { backgroundColor: getStatusColor(user.active) + '20' }]}>
+            <View style={[styles.statusDot, { backgroundColor: getStatusColor(user.active) }]} />
+            <Text style={[styles.statusText, { color: getStatusColor(user.active) }]}>
+              {user.active ? 'Active' : 'Suspended'}
             </Text>
           </View>
         </View>
+
+        
 
         {/* User Info */}
         <View style={styles.section}>
@@ -155,13 +212,17 @@ const UserDetailScreen = () => {
           <InfoRow label="Email" value={user.email} icon="mail-outline" />
           <InfoRow 
             label="Role" 
-            value={user.role.charAt(0).toUpperCase() + user.role.slice(1)} 
+            value={user.role?.charAt(0).toUpperCase() + user.role?.slice(1)} 
             icon="person-outline"
             valueStyle={{ color: getRoleColor(user.role) }}
           />
-          <InfoRow label="Member since" value={new Date(user.joinedDate).toLocaleDateString()} icon="calendar-outline" />
-          <InfoRow label="Last active" value={user.lastActive} icon="time-outline" />
-          <InfoRow label="Total uploads" value={user.totalUploads.toString()} icon="cloud-upload-outline" />
+          <InfoRow label="Member since" value={new Date(user.$createdAt)?.toLocaleDateString()} icon="calendar-outline" />
+          {/* <InfoRow label="Last active" value={user.lastActive} icon="time-outline" /> */}
+          {
+            user.role === 'admin' && (
+              <InfoRow label="Total uploads" value={user.totalUploads?.toString() || "00"} icon="cloud-upload-outline" />
+            )
+          }
         </View>
 
         {/* Bio */}
@@ -176,20 +237,61 @@ const UserDetailScreen = () => {
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Actions</Text>
           
-          <TouchableOpacity style={styles.actionButton}>
+          {/* <TouchableOpacity style={styles.actionButton}>
             <Ionicons name="key-outline" size={20} color="#4A6FA5" />
             <Text style={styles.actionButtonText}>Reset Password</Text>
-          </TouchableOpacity>
+          </TouchableOpacity> */}
           
-          <TouchableOpacity style={styles.actionButton}>
+          {/* <TouchableOpacity style={styles.actionButton}>
             <Ionicons name="mail-outline" size={20} color="#4A6FA5" />
             <Text style={styles.actionButtonText}>Send Message</Text>
+          </TouchableOpacity> */}
+
+          {/* button to make or remove admin */}
+          <TouchableOpacity>
+            {user.role !== 'admin' ? (
+              <TouchableOpacity 
+                style={[styles.actionButton, { borderColor: '#DBEAFE' }]}
+                onPress={() => Alert.alert(
+                  'Confirm Role Change',
+                  `Are you sure you want to make ${user.name} an admin?`,
+                  [
+                    { text: 'Cancel', style: 'cancel' },
+                    { text: 'Yes, Make Admin', onPress: () => {
+                      changeUserRole('admin');
+                      Alert.alert('Success', `${user.name} is now an admin.`);
+                    }, style: 'destructive' }
+                  ]
+                )}
+              >
+                <Ionicons name="shield-checkmark-outline" size={20} color="#4F46E5" />
+                <Text style={[styles.actionButtonText, { color: '#4F46E5' }]}>Make Admin</Text>
+              </TouchableOpacity>
+            ) : (
+              <TouchableOpacity 
+                style={[styles.actionButton, { borderColor: '#FEE2E2' }]}
+                onPress={() => Alert.alert(
+                  'Confirm Role Change',
+                  `Are you sure you want to remove admin rights from ${user.name}?`,
+                  [
+                    { text: 'Cancel', style: 'cancel' },
+                    { text: 'Yes, Remove Admin', onPress: () => {
+                      changeUserRole('student');
+                      Alert.alert('Success', `${user.name} is no longer an admin.`);
+                    }, style: 'destructive' }
+                  ]
+                )}
+              >
+                <Ionicons name="shield-outline" size={20} color="#EF4444" />
+                <Text style={[styles.actionButtonText, { color: '#EF4444' }]}>Remove Admin</Text>
+              </TouchableOpacity>
+            )}
           </TouchableOpacity>
           
-          {user.status !== 'suspended' ? (
+          {user.active ? (
             <TouchableOpacity 
               style={[styles.actionButton, { borderColor: '#FEE2E2' }]}
-              onPress={() => handleStatusChange('suspended')}
+              onPress={() => handleStatusChange('false')}
             >
               <Ionicons name="ban-outline" size={20} color="#EF4444" />
               <Text style={[styles.actionButtonText, { color: '#EF4444' }]}>Suspend User</Text>
@@ -197,7 +299,7 @@ const UserDetailScreen = () => {
           ) : (
             <TouchableOpacity 
               style={[styles.actionButton, { borderColor: '#D1FAE5' }]}
-              onPress={() => handleStatusChange('active')}
+              onPress={() => handleStatusChange('true')}
             >
               <Ionicons name="checkmark-circle-outline" size={20} color="#10B981" />
               <Text style={[styles.actionButtonText, { color: '#10B981' }]}>Activate User</Text>
@@ -206,13 +308,13 @@ const UserDetailScreen = () => {
         </View>
 
         {/* User Activity (Placeholder) */}
-        <View style={styles.section}>
+        {/* <View style={styles.section}>
           <Text style={styles.sectionTitle}>Recent Activity</Text>
           <View style={styles.placeholderBox}>
             <Ionicons name="time-outline" size={24} color="#9CA3AF" />
             <Text style={styles.placeholderText}>User activity will appear here</Text>
           </View>
-        </View>
+        </View> */}
       </ScrollView>
     </SafeAreaView>
   );

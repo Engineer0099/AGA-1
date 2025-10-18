@@ -1,15 +1,17 @@
-import { View, Text, StyleSheet, TextInput, TouchableOpacity, ScrollView, Alert } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
-import { useState } from 'react';
+import { Picker } from '@react-native-picker/picker';
 import { useRouter } from 'expo-router';
+import { useState } from 'react';
+import { Alert, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 type UserForm = {
   name: string;
   email: string;
+  phone: string;
   password: string;
   confirmPassword: string;
-  role: 'admin' | 'teacher' | 'student';
+  role: 'admin' | 'student';
   status: 'active' | 'inactive' | 'suspended';
 };
 
@@ -19,6 +21,7 @@ export default function NewUserScreen() {
   const [form, setForm] = useState<UserForm>({
     name: '',
     email: '',
+    phone: '',
     password: '',
     confirmPassword: '',
     role: 'student',
@@ -27,6 +30,13 @@ export default function NewUserScreen() {
 
   const handleBack = () => {
     router.back();
+  };
+
+  const handleInputChange = (field: string, value: string) => { 
+    setForm(prev => ({
+      ...prev,
+      [field]: value
+    }));
   };
 
   const handleSubmit = async () => {
@@ -106,6 +116,18 @@ export default function NewUserScreen() {
         </View>
 
         <View style={styles.formGroup}>
+          <Text style={styles.label}>Phone Number *</Text>
+          <TextInput
+            style={styles.input}
+            placeholder="Enter phone number"
+            value={form.phone}
+            onChangeText={(text) => setForm({...form, phone: text})}
+            keyboardType="phone-pad"
+            placeholderTextColor="#9CA3AF"
+          />
+        </View>
+
+        <View style={styles.formGroup}>
           <Text style={styles.label}>Password *</Text>
           <TextInput
             style={styles.input}
@@ -133,20 +155,31 @@ export default function NewUserScreen() {
           <View style={[styles.formGroup, { flex: 1, marginRight: 8 }]}>
             <Text style={styles.label}>Role</Text>
             <View style={styles.selectContainer}>
-              <Text style={styles.selectText}>
-                {form.role.charAt(0).toUpperCase() + form.role.slice(1)}
-              </Text>
-              <Ionicons name="chevron-down" size={16} color="#6B7280" />
+              <Picker
+                selectedValue={form.role}
+                onValueChange={(itemValue: string) => handleInputChange('role', itemValue)}
+                style={styles.picker}
+                dropdownIconColor="#6B7280"
+              >
+                <Picker.Item label="Student" value="student" />
+                <Picker.Item label="Admin" value="admin" />
+              </Picker>
             </View>
           </View>
           
-          <View style={[styles.formGroup, { flex: 1, marginLeft: 8 }]}>
+          <View style={[styles.formGroup, { flex: 1, marginRight: 8 }]}>
             <Text style={styles.label}>Status</Text>
             <View style={styles.selectContainer}>
-              <Text style={styles.selectText}>
-                {form.status.charAt(0).toUpperCase() + form.status.slice(1)}
-              </Text>
-              <Ionicons name="chevron-down" size={16} color="#6B7280" />
+              <Picker
+                selectedValue={form.status}
+                onValueChange={(itemValue: string) => handleInputChange('status', itemValue)}
+                style={styles.picker}
+                dropdownIconColor="#6B7280"
+              >
+                <Picker.Item label="actice" value="active" />
+                <Picker.Item label="inactive" value="inactive" />
+                <Picker.Item label="suspended" value="suspended" />
+              </Picker>
             </View>
           </View>
         </View>
@@ -182,6 +215,12 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
   },
+  picker: {
+    width: '100%',
+    height: 48,
+    color: '#111827',
+  },
+
   saveButton: {
     backgroundColor: '#4A6FA5',
     paddingHorizontal: 16,

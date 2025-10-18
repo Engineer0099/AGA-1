@@ -1,6 +1,8 @@
 import { Stack } from 'expo-router';
+import { usePreventScreenCapture } from 'expo-screen-capture';
 
 export default function AuthLayout() {
+  usePreventScreenCapture();
   return (
     <Stack screenOptions={{ headerShown: false }}>
       <Stack.Screen name="splash" />

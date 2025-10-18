@@ -5,6 +5,7 @@ import { router } from 'expo-router';
 import { useEffect } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 
+
 export async function saveUserLocally(user: any) {
   try {
     await AsyncStorage.setItem('currentUser', JSON.stringify(user));
@@ -26,14 +27,11 @@ export async function getUserLocally() {
 
 
 export default function SplashScreen() {
+
   const {setUser} = useUser()
   useEffect(() => {
     const checkUserAndOnboarding = async () => {
       try {
-        // 1️⃣ Check onboarding
-        const onboardingComplete = await AsyncStorage.getItem('onboardingComplete');
-
-        // 2️⃣ Check Appwrite session
         let user = null;
 
         try {
@@ -55,6 +53,11 @@ export default function SplashScreen() {
             name: user.name ?? "User",
             email: user.email,
             role: mappedRole,
+            phone: doc?.phone || null,
+            bio: doc?.bio || null,
+            total_uploads: doc?.Total_uploads || 0,
+            plan: doc?.plan || 'free',
+            plan_expiry: doc?.plan_expiry || null,
           });
           await saveUserLocally(user);
         } catch {
@@ -68,9 +71,6 @@ export default function SplashScreen() {
         }
         // 3️⃣ Delay splash screen for 2 seconds
         setTimeout(() => {
-          // if (!onboardingComplete || onboardingComplete !== 'true') {
-          //   router.replace('/(auth)/onboarding');
-          // } else 
           if (!user) {
             router.replace('/(auth)/signin'); // Not logged in
           } else if (user.role === 'admin') {

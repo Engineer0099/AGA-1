@@ -1,19 +1,20 @@
 import { useUser } from '@/hooks/useUser';
 import { databases } from '@/lib/appwrite';
 import { Ionicons } from '@expo/vector-icons';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import NetInfo from '@react-native-community/netinfo';
 import { useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { ActivityIndicator, FlatList, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-//const { width } = Dimensions.get('window');
 
 type User = {
   id: string;
   name: string;
   email: string;
-  role: 'admin' | 'teacher' | 'student';
-  status: 'active' | 'inactive' | 'suspended';
+  role: 'admin' | 'student';
+  active: true | false;
   lastActive: string;
 };
 
@@ -23,7 +24,24 @@ const UsersScreen = () => {
   const handleBack = () => {
     router.back();
   };
-  
+
+  const isOnline = async () => {
+    const state = await NetInfo.fetch();
+    return state.isConnected && state.isInternetReachable;
+  };
+
+
+  // Load users from local storage
+  const loadCachedUsers = async () => {
+    try {
+      const cached = await AsyncStorage.getItem('users');
+      return cached ? JSON.parse(cached) : [];
+    } catch (error) {
+      console.error('Error loading cached users', error);
+      return [];
+    }
+  };
+
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(false);
 
@@ -32,22 +50,32 @@ const UsersScreen = () => {
     const ac = new AbortController(); // kept in case you want to wire up real abort logic later
     const fetchUsers = async () => {
       setLoading(true);
+      const online = await isOnline();
       try {
-        const res = await databases.listDocuments("68ca66480039a017b799", "user");
-        if (!mounted) return;
+        if(online){
+          const res = await databases.listDocuments("68ca66480039a017b799", "user");
+          // Save to local storage
+          await AsyncStorage.setItem('users', JSON.stringify(res.documents));
 
-        const docs = Array.isArray((res as any).documents) ? (res as any).documents : [];
-        // Map Appwrite documents to your local User type; adjust field names to match your collection
-        const mapped: User[] = docs.map((d: any) => ({
-          id: d.$id ?? d.id,
-          name: d.name ?? (`${d.firstName ?? ''} ${d.lastName ?? ''}`.trim() || d.email || 'Unnamed'),
-          email: d.email ?? '',
-          role: (d.role as User['role']) ?? 'student',
-          status: (d.status as User['status']) ?? 'active',
-          lastActive: d.lastActive ?? d.updatedAt ?? d.$updatedAt ?? 'Unknown',
-        }));
-
-        setUsers(mapped);
+          if (!mounted) return;
+  
+          const docs = Array.isArray((res as any).documents) ? (res as any).documents : [];
+          // Map Appwrite documents to your local User type; adjust field names to match your collection
+          const mapped: User[] = docs.map((d: any) => ({
+            id: d.$id ?? d.id,
+            name: d.name ?? (`${d.firstName ?? ''} ${d.lastName ?? ''}`.trim() || d.email || 'Unnamed'),
+            email: d.email ?? '',
+            role: (d.role as User['role']) ?? 'student',
+            active: (d.active as User['active']) ?? false,
+            lastActive: d.lastActive ?? d.updatedAt ?? d.$updatedAt ?? 'Unknown',
+          }));
+  
+          setUsers(mapped);
+        } else {
+          const cachedUsers = await loadCachedUsers();
+          if (!mounted) return;
+          setUsers(cachedUsers);
+        }
       } catch (err) {
         if (!mounted) return;
         console.error('Error fetching users from Appwrite', err);
@@ -67,7 +95,7 @@ const UsersScreen = () => {
 
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedRole, setSelectedRole] = useState<string | null>(null);
-  const [selectedStatus, setSelectedStatus] = useState<string | null>(null);
+  // const [selectedStatus, setSelectedStatus] = useState<string | null>(null);
   const { user } = useUser();
 
   useEffect(() => {
@@ -76,11 +104,10 @@ const UsersScreen = () => {
     }
   }, [user, router]);
 
-  const getStatusColor = (status: string) => {
+  const getStatusColor = (status: boolean) => {
     switch (status) {
-      case 'active': return '#10B981';
-      case 'inactive': return '#6B7280';
-      case 'suspended': return '#EF4444';
+      case true: return '#10B981';
+      case false: return '#EF4444';
       default: return '#6B7280';
     }
   };
@@ -89,8 +116,8 @@ const UsersScreen = () => {
     const matchesSearch = user.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
                           user.email.toLowerCase().includes(searchQuery.toLowerCase());
     const matchesRole = !selectedRole || user.role === selectedRole;
-    const matchesStatus = !selectedStatus || user.status === selectedStatus;
-    return matchesSearch && matchesRole && matchesStatus;
+    // const matchesStatus = !selectedStatus || user.active === selectedStatus;
+    return matchesSearch && matchesRole ;
   });
 
   const handleUserPress = (userId: string) => {
@@ -133,10 +160,10 @@ const UsersScreen = () => {
       <View style={styles.userInfo}>
         <View style={styles.userHeader}>
           <Text style={styles.userName}>{item.name}</Text>
-          <View style={[styles.statusBadge, { backgroundColor: getStatusColor(item.status) + '20' }]}>
-            <View style={[styles.statusDot, { backgroundColor: getStatusColor(item.status) }]} />
-            <Text style={[styles.statusText, { color: getStatusColor(item.status) }]}>
-              {item.status.charAt(0).toUpperCase() + item.status.slice(1)}
+          <View style={[styles.statusBadge, { backgroundColor: getStatusColor(item.active) + '20' }]}>
+            <View style={[styles.statusDot, { backgroundColor: getStatusColor(item.active) }]} />
+            <Text style={[styles.statusText, { color: getStatusColor(item.active) }]}>
+              {item.active ? 'Active' : 'Suspended'}
             </Text>
           </View>
         </View>
@@ -159,7 +186,6 @@ const UsersScreen = () => {
   const getRoleColor = (role: string) => {
     switch (role) {
       case 'admin': return '#4F46E5';
-      case 'teacher': return '#10B981';
       case 'student': return '#F59E0B';
       default: return '#94A3B8';
     }
@@ -206,7 +232,7 @@ const UsersScreen = () => {
           >
             <Text style={[styles.filterText, !selectedRole && styles.filterTextActive]}>All Roles</Text>
           </TouchableOpacity>
-          {['admin', 'teacher', 'student'].map(role => (
+          {['admin', 'student'].map(role => (
             <TouchableOpacity 
               key={role}
               style={[styles.filterPill, selectedRole === role && styles.filterPillActive]}

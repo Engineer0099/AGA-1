@@ -83,7 +83,7 @@ export default function SignInScreen() {
         if (isAdmin) {
           // For admin users, store token and navigate to admin dashboard
           await SecureStore.setItemAsync('admin_token', user.$id);
-          router.replace('/admin');
+          router.replace('/admin'); 
         } else {
           // For regular users, navigate to the main app tabs
           await SecureStore.setItemAsync('user_token', user.$id);

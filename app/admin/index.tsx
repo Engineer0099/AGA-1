@@ -2,6 +2,7 @@ import { useUser } from '@/hooks/useUser';
 import { account } from '@/lib/appwrite';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
+import { usePreventScreenCapture } from 'expo-screen-capture';
 import * as SecureStore from 'expo-secure-store';
 import { Alert, Dimensions, FlatList, ScrollView, StyleSheet, Text, TouchableOpacity, View, ViewStyle } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -26,6 +27,7 @@ type StatItem = {
 };
 
 const DashboardScreen = () => {
+  usePreventScreenCapture();
   const insets = useSafeAreaInsets();
   const { setUser } = useUser();
 
@@ -70,7 +72,21 @@ const DashboardScreen = () => {
       bgColor: 'rgba(236, 72, 153, 0.1)',
       iconColor: '#ec4899',
       route: '/admin/tips' 
-    }
+    },
+    {
+      label: 'Subjects', 
+      icon: 'book', 
+      bgColor: 'rgba(245, 158, 11, 0.1)',
+      iconColor: '#f59e0b',
+      route: '/admin/subjects'
+    },
+    {
+      label: 'Notifications', 
+      icon: 'notifications', 
+      bgColor: 'rgba(14, 165, 233, 0.1)',
+      iconColor: '#0ea5e9',
+      route: '/admin/notifications'
+    },
   ];
 
   // Stats data with trends
@@ -162,21 +178,22 @@ const DashboardScreen = () => {
     }
   };
 
-  const navigateToSection = (route: '/admin/users' | '/admin/papers' | '/admin/notes') => {
+  const navigateToSection = (route: '/admin/users' | '/admin/papers' | '/admin/notes' | '/admin/profile') => {
     router.push(route);
   };
 
   return (
-    <SafeAreaView style={[styles.container, { paddingTop: insets.top }]}>
+    <SafeAreaView style={styles.container}>
       {/* Header */}
       <View style={styles.header}>
         <View>
           <Text style={styles.welcomeText}>Welcome back,</Text>
           <Text style={styles.adminName}>Admin</Text>
         </View>
-        <TouchableOpacity onPress={handleLogout} style={styles.logoutButton}>
-          <Ionicons name="log-out-outline" size={18} color="#2563EB" />
-          <Text style={styles.logoutButtonText}>Logout</Text>
+        
+        {/*User icon */}
+        <TouchableOpacity style={styles.backButton} onPress={() => navigateToSection('/admin/profile')}>
+          <Ionicons name="person-circle-outline" size={35} color="#6d9bdbff" />
         </TouchableOpacity>
       </View>
       

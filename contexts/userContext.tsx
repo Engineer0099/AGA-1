@@ -4,7 +4,13 @@ interface User {
   id: string;
   name: string;
   email?: string;
-  role?: 'admin' | 'teacher' | 'student';
+  phone?: string;
+  avatarUrl?: string;
+  bio?: string;
+  role?: 'admin' | 'student';
+  plan?: 'free' | 'premium';
+  plan_expiry?: string | null;
+  total_uploads?: number;
 }
 
 interface UserContextType {

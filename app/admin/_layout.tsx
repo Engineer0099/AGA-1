@@ -1,8 +1,10 @@
 import { Stack } from 'expo-router';
-import { View, StyleSheet } from 'react-native';
+import { usePreventScreenCapture } from 'expo-screen-capture';
+import { StyleSheet, View } from 'react-native';
 import { useTheme } from 'react-native-paper';
 
 export default function AdminLayout() {
+  usePreventScreenCapture();
   const theme = useTheme();
 
   return (

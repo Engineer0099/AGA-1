@@ -7,17 +7,6 @@ import { useEffect, useState } from 'react';
 import { Alert, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-// type Paper = {
-//   id: string;
-//   title: string;
-//   subject: string;
-//   year: number;
-//   type: 'Midterm' | 'Final' | 'Quiz' | 'Practice';
-//   fileType: 'PDF' | 'DOC' | 'IMAGE';
-//   uploaded: string;
-//   downloads: number;
-//   description?: string;
-// };
 
 const isOnline = async () => {
   const state = await NetInfo.fetch();

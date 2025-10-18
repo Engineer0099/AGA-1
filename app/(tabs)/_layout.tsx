@@ -1,9 +1,10 @@
-import { Tabs } from 'expo-router';
-import React from 'react';
-import { Platform, StyleSheet, View, ViewStyle, StyleProp } from 'react-native';
-import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
-import { useColorScheme } from '@/hooks/useColorScheme';
 import { Colors } from '@/constants/Colors';
+import { useColorScheme } from '@/hooks/useColorScheme';
+import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
+import { Tabs } from 'expo-router';
+import { usePreventScreenCapture } from 'expo-screen-capture';
+import React from 'react';
+import { Platform, StyleProp, StyleSheet, View, ViewStyle } from 'react-native';
 
 type TabBarIconProps = {
   name: string;
@@ -48,6 +49,7 @@ const TabBarIcon: React.FC<TabBarIconProps> = ({ name, color, focused }) => {
 
 
 export default function TabLayout() {
+  usePreventScreenCapture();
   const colorScheme = useColorScheme();
   const colors = Colors[colorScheme ?? 'light'];
 

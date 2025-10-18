@@ -1,9 +1,11 @@
 import { useUser } from '@/hooks/useUser';
+import { account, databases } from '@/lib/appwrite';
 import { router, useLocalSearchParams } from 'expo-router';
+import * as SecureStore from 'expo-secure-store';
 import { useState } from 'react';
 import { ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { ID, Permission, Role } from 'react-native-appwrite';
-import { account, databases } from '../../lib/appwrite';
+
 
 type SchoolLevel = 'primary' | 'secondary' | 'university';
 
@@ -116,8 +118,8 @@ const handleSignUp = async () => {
       console.warn("Failed to fetch user profile:", err);
     }
 
-    const mappedRole: "admin" | "teacher" | "student" =
-      doc?.role === "admin" || doc?.role === "teacher" || doc?.role === "student"
+    const mappedRole: "admin" | "student" =
+      doc?.role === "admin" || doc?.role === "student"
         ? doc.role
         : "student";
 
@@ -128,7 +130,12 @@ const handleSignUp = async () => {
       role: mappedRole,
     });
 
-    // 5. Redirect (free users -> home, others -> payment)
+    // 5. Store user token in secure storage
+    await SecureStore.setItemAsync('admin_token', user.$id);
+
+    console.log("User signed up and logged in:", user);
+
+    // 6. Redirect (free users -> home, others -> payment)
     setIsLoading(false);
     if (doc?.plan === "free") {
       router.replace("/(tabs)/library");

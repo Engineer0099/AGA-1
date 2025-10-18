@@ -43,7 +43,7 @@ const TipsScreen = () => {
   const loadPublishedTipsFromDatabase = async () => {
     try {
       const response = await databases.listDocuments('68ca66480039a017b799', 'study_tip');
-      const fetchedTips = response.documents.map((doc: any) => ({
+      const fetchedTips = response?.documents?.map((doc: any) => ({
         id: doc.$id,
         title: doc.title,
         content: doc.content,

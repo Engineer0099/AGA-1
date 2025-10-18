@@ -1,82 +1,145 @@
-import { View, Text, StyleSheet, FlatList, TouchableOpacity, TextInput, ScrollView } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { useUser } from '@/hooks/useUser';
+import { databases } from '@/lib/appwrite';
 import { Ionicons } from '@expo/vector-icons';
-import { useState } from 'react';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import NetInfo from '@react-native-community/netinfo';
 import { useRouter } from 'expo-router';
+import { useEffect, useState } from 'react';
+import { ActivityIndicator, FlatList, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+
 
 type Note = {
-  id: string;
+  $id: string;
   title: string;
   subject: string;
   topic: string;
-  author: string;
+  creater: string;
   pages: number;
   fileType: 'PDF' | 'DOC' | 'PPT';
   uploaded: string;
   downloads: number;
 };
 
+const isOnline = async () => {
+  const state = await NetInfo.fetch();
+  return state.isConnected && state.isInternetReachable;
+};
+
+
 const NotesScreen = () => {
   const router = useRouter();
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedSubject, setSelectedSubject] = useState<string | null>(null);
   const [selectedType, setSelectedType] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [notes, setNotes] = useState<Note[]>([]);
+  const { user } = useUser();
+
   
   const handleBack = () => {
     router.back();
   };
 
-  // Mock data - replace with actual data from your API
-  const notes: Note[] = [
-    {
-      id: '1',
-      title: 'Calculus Basics',
-      subject: 'Mathematics',
-      topic: 'Differential Calculus',
-      author: 'Dr. Smith',
-      pages: 24,
-      fileType: 'PDF',
-      uploaded: '3 days ago',
-      downloads: 189,
-    },
-    {
-      id: '2',
-      title: 'Organic Chemistry Reactions',
-      subject: 'Chemistry',
-      topic: 'Organic Chemistry',
-      author: 'Prof. Johnson',
-      pages: 18,
-      fileType: 'PDF',
-      uploaded: '1 week ago',
-      downloads: 245,
-    },
-    {
-      id: '3',
-      title: 'Classical Mechanics',
-      subject: 'Physics',
-      topic: 'Mechanics',
-      author: 'Dr. Williams',
-      pages: 32,
-      fileType: 'PPT',
-      uploaded: '5 days ago',
-      downloads: 156,
-    },
-  ];
+  
+    const handleNotePress = (id: string) => {
+      // navigate to the note detail screen
+      router.push(`/admin/notes/${id}`);
+    };
+  
 
-  const handleNotePress = (noteId: string) => {
-    router.push(`/admin/notes/${noteId}`);
+
+  //Load notes from Database
+  const LoadNotesFromDb = async (): Promise<Note[]> => {
+    setLoading(true);
+    try{
+      const loadedData = await databases.listDocuments('68ca66480039a017b799', 'notes');
+      // appwrite returns { documents: [...] } — fall back to loadedData if shape differs
+      const docs = (loadedData as any).documents ?? (loadedData as any);
+      const notesArray = (docs as Note[]) || [];
+      setNotes(notesArray);
+      return notesArray;
+    } catch(err) {
+      console.log("Error Fetching Notes From Database", err);
+      setNotes([]);
+      return [];
+    }
+  }
+
+  // Load Notes Locally
+  const LoadNotesLocally = async (): Promise<Note[]> => {
+    setLoading(true);
+    try{
+      const loadedNotes = await AsyncStorage.getItem('notes');
+      const parsed = loadedNotes ? (JSON.parse(loadedNotes) as Note[]) : [];
+      setNotes(parsed);
+      return parsed;
+    } catch(err){
+      console.log('Error fetching Notes Locally', err);
+      setNotes([]);
+      return [];
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  //Save Notes Locally
+  const SaveNotesLocally = async (saveNotes: Note[]) => {
+    try{
+      await AsyncStorage.setItem('notes', JSON.stringify(saveNotes));
+    } catch (err){
+      console.log('Error Saving Notes Locally', err);
+    }
   };
+  
+  useEffect( () => {
+    setLoading(true);
+    (async() => {
+      const online = await isOnline();
+      let fetchedNotes: Note[] = [];
+      if(online){
+        try{
+          fetchedNotes = await LoadNotesFromDb();
+          await SaveNotesLocally(fetchedNotes);
+          setNotes(fetchedNotes);
+        } catch (err){
+          console.log('Error Fetching Notes Online', err);
+        } finally {
+          setLoading(false);
+        }
+      } else {
+        try {
+          fetchedNotes = await LoadNotesLocally();
+          setNotes(fetchedNotes);
+        } catch (err) {
+          console.log('Error Fetching Notes Locally', err);
+        } finally {
+          if(user?.role !== 'admin'){
+            const subject = await AsyncStorage.getItem('current_subject');
+            const filtered = notes.filter(
+              (t) =>
+                t?.subject === subject
+            );
+            setNotes(filtered);
+          }
+          setLoading(false);
+        }
+      }
+      console.log(fetchedNotes);
+    })()
+  }, []);
+          
 
   const renderNoteItem = ({ item }: { item: Note }) => (
     <TouchableOpacity 
       style={styles.noteCard}
-      onPress={() => handleNotePress(item.id)}
+      onPress={() => handleNotePress(item.$id)}
       activeOpacity={0.9}
     >
       <View style={styles.noteIcon}>
         <Ionicons 
           name={item.fileType === 'PDF' ? 'document-text' : 'document-attach'} 
-          size={32} 
+          size={32}
           color="#4F46E5" 
         />
       </View>
@@ -103,20 +166,9 @@ const NotesScreen = () => {
         <View style={styles.noteFooter}>
           <View style={styles.authorInfo}>
             <Ionicons name="person-circle" size={16} color="#94A3B8" />
-            <Text style={styles.authorName}>{item.author}</Text>
+            <Text style={styles.authorName}>{item.creater}</Text>
           </View>
           
-          <View style={styles.stats}>
-            <View style={styles.statItem}>
-              <Ionicons name="document" size={14} color="#94A3B8" />
-              <Text style={styles.statText}>{item.pages} pages</Text>
-            </View>
-            <View style={styles.statItem}>
-              <Ionicons name="download" size={14} color="#94A3B8" />
-              <Text style={styles.statText}>{item.downloads}</Text>
-            </View>
-            <Text style={styles.uploadedText}>{item.uploaded}</Text>
-          </View>
         </View>
       </View>
       
@@ -219,10 +271,16 @@ const NotesScreen = () => {
         </ScrollView>
       </View>
 
+      {loading ? (
+        <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+          <ActivityIndicator size="large" color="#4A6FA5" />
+          <Text>Loading...</Text>
+        </View>
+      ) : (
       <FlatList
         data={filteredNotes}
         renderItem={renderNoteItem}
-        keyExtractor={item => item.id}
+        keyExtractor={item => item.$id}
         contentContainerStyle={styles.notesList}
         ListEmptyComponent={
           <View style={styles.emptyState}>
@@ -232,6 +290,7 @@ const NotesScreen = () => {
           </View>
         }
       />
+      )}
       
       {/* Floating Action Button */}
       <TouchableOpacity 

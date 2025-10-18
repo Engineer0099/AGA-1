@@ -1,61 +1,176 @@
-import { View, Text, StyleSheet, TextInput, TouchableOpacity, ScrollView, Alert } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { useUser } from '@/hooks/useUser';
 import { Ionicons } from '@expo/vector-icons';
-import { useState } from 'react';
+import { Picker } from '@react-native-picker/picker';
+import * as DocumentPicker from 'expo-document-picker';
 import { useRouter } from 'expo-router';
+import { useEffect, useState } from 'react';
+import { ActivityIndicator, Alert, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { ID, Query } from 'react-native-appwrite';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { databases, storage } from '../../../lib/appwrite';
 
-type NoteForm = {
+type NotesForm = {
   title: string;
-  subject: string;
   topic: string;
-  author: string;
-  pages: string;
   fileType: 'PDF' | 'DOC' | 'PPT';
+  author: string;
+  grade: string;
   description: string;
+  subject: string;
+  no_of_downloads: number;
+  createdAt: Date;
+  updatedAt: Date;
 };
 
-export default function NewNoteScreen() {
+export default function NewNotesScreen() {
   const router = useRouter();
+  const { user } = useUser();
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [form, setForm] = useState<NoteForm>({
+  const [form, setForm] = useState<NotesForm>({
     title: '',
     subject: '',
     topic: '',
-    author: '',
-    pages: '',
+    grade: '',
     fileType: 'PDF',
     description: '',
+    author: '',
+    no_of_downloads: 0,
+    createdAt: new Date(),
+    updatedAt: new Date()
   });
+  const [file, setFile] = useState<any>(null);
+  const [subjects, setSubjects] = useState<string[]>([]);
+  const [topics, setTopics] = useState<string[]>([]);
+
+  const handleInputChange = (field: string, value: string) => { 
+    setForm(prev => ({
+      ...prev,
+      [field]: value
+    }));
+  };
 
   const handleBack = () => {
     router.back();
   };
 
+  // Pick file
+  const pickFile = async () => {
+    const res = await DocumentPicker.getDocumentAsync({});
+    console.log(res);
+    if (res) {
+      setFile({
+        uri: res.assets ? res.assets[0].uri : '',
+        name: res.assets ? res.assets[0].name : '',
+        size: res.assets ? res.assets[0].size : 0,
+        mimeType: res.assets ? res.assets[0].mimeType : '',
+      });
+      console.log('Selected file:', res);
+    }
+  };
+
   const handleSubmit = async () => {
-    if (!form.title || !form.subject || !form.topic) {
+    if (!form.title || !form.subject || !form.topic || !file) {
       Alert.alert('Error', 'Please fill in all required fields');
       return;
     }
 
     setIsSubmitting(true);
-    
+
     try {
-      // TODO: Replace with actual API call
-      console.log('Submitting note:', form);
-      
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      Alert.alert('Success', 'Note created successfully!', [
-        { text: 'OK', onPress: () => router.back() }
-      ]);
+      // 1. Convert picked file URI -> Blob
+      const response = await fetch(file.uri);
+      const blob = await response.blob();
+
+      // 2. Wrap blob in File object (Appwrite understands this)
+      const appwriteFile = {
+        name: file.name,
+        size: blob.size,
+        type: file.mimeType,
+        uri: file.uri,
+      };
+
+      // 3. Upload to Appwrite storage
+      const fileData = await storage.createFile(
+        '68d2174c0000e21e68f0',
+        ID.unique(),
+        appwriteFile
+      );
+      console.log('File uploaded:', fileData);
+
+      // 4. Save metadata in database
+      const notesData = {
+        title: form.title,
+        subject: form.subject,
+        topic: form.topic as string,
+        grade: form.grade,
+        fileType: form.fileType,
+        description: form.description,
+        creater: user?.name,
+        fileId: fileData.$id,
+      };
+
+      await databases.createDocument(
+        '68ca66480039a017b799',
+        'notes',
+        ID.unique(),
+        notesData
+      );
+
+      Alert.alert('Success', 'Notes created successfully');
+      router.replace('/admin/notes');
     } catch (error) {
-      console.error('Error creating note:', error);
-      Alert.alert('Error', 'Failed to create note. Please try again.');
+      console.error('Error creating notes:', error);
+      Alert.alert('Error', 'Failed to create notes. Please try again.');
     } finally {
       setIsSubmitting(false);
     }
   };
+
+  useEffect( () => {
+    form.subject = '';
+    const fetchSubjects = async () => {
+      try {
+        const response = await databases.listDocuments(
+          '68ca66480039a017b799',
+          'subject',
+          [
+            Query.equal('grade', form.grade)
+          ]
+        );
+        setSubjects(response.documents.map(doc => doc.name) as any);
+      } catch (error) {
+        console.error('Error fetching subjects:', error);
+      }
+      
+    };
+
+    if (form.grade) {
+      fetchSubjects();
+    }
+  }, [form.grade]);
+
+  useEffect( () => {
+    const fetchTopics = async () => {
+      try {
+        const response = await databases.listDocuments(
+          '68ca66480039a017b799',
+          'topic',
+          [
+            Query.equal('subject', form.subject)
+          ]
+        );
+        setTopics(response.documents.map(doc => doc.title) as any);
+        
+      } catch (error) {
+        console.error('Error fetching subjects:', error);
+      }
+    };
+
+    if (form.subject) {
+      fetchTopics();
+    }
+    
+  }, [form.subject]);
 
   return (
     <SafeAreaView style={styles.container}>
@@ -63,7 +178,7 @@ export default function NewNoteScreen() {
         <TouchableOpacity onPress={handleBack} style={styles.backButton}>
           <Ionicons name="arrow-back" size={24} color="#4A6FA5" />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Add New Note</Text>
+        <Text style={styles.headerTitle}>Add New Notes</Text>
         <View style={styles.headerActions}>
           <TouchableOpacity 
             style={styles.saveButton}
@@ -78,72 +193,105 @@ export default function NewNoteScreen() {
       </View>
 
       <ScrollView style={styles.content}>
+        <View style={[styles.formGroup, { flex: 1, marginLeft: 8 }]}>
+          <Text style={styles.label}>Grade *</Text>
+          <View style={styles.selectContainer}>
+            <Picker
+              selectedValue={form.grade}
+              onValueChange={(itemValue: string) => handleInputChange('grade', itemValue)}
+              style={styles.picker}
+              dropdownIconColor="#6B7280"
+            >
+              <Picker.Item label="Standard 1" value="standard_1" />
+              <Picker.Item label="Standard 2" value="standard_2" />
+              <Picker.Item label="Standard 3" value="standard_3" />
+              <Picker.Item label="Standard 4" value="standard_4" />
+              <Picker.Item label="Standard 5" value="standard_5" />
+              <Picker.Item label="Standard 6" value="standard_6" />
+              <Picker.Item label="Standard 7" value="standard_7" />
+              <Picker.Item label="Form 1" value="form-1" />
+              <Picker.Item label="Form 2" value="form-2" />
+              <Picker.Item label="Form 3" value="form-3" />
+              <Picker.Item label="Form 4" value="form-4" />
+              <Picker.Item label="Form 5" value="form-5" />
+              <Picker.Item label="Form 6" value="form-6" /> 
+              <Picker.Item label="University" value="university" />               
+            </Picker>
+          </View>
+        </View>
+
         <View style={styles.formGroup}>
           <Text style={styles.label}>Title *</Text>
           <TextInput
             style={styles.input}
-            placeholder="Enter note title"
+            placeholder="Enter notes title"
             value={form.title}
             onChangeText={(text) => setForm({...form, title: text})}
             placeholderTextColor="#9CA3AF"
           />
         </View>
 
+        
         <View style={styles.formGroup}>
           <Text style={styles.label}>Subject *</Text>
-          <TextInput
-            style={styles.input}
-            placeholder="e.g. Mathematics"
-            value={form.subject}
-            onChangeText={(text) => setForm({...form, subject: text})}
-            placeholderTextColor="#9CA3AF"
-          />
+          {form.grade === '' ? (
+            <View style={styles.input}>
+              <ActivityIndicator size='small' color='blue' />
+            </View>
+          ) : (
+            <View style={styles.selectContainer}>
+              <Picker
+                selectedValue={form.subject}
+                onValueChange={(itemValue: string) => handleInputChange('subject', itemValue)}
+                style={styles.picker}
+                dropdownIconColor="#6B7280"
+              >
+                <Picker.Item label="Select a subject" value="" />
+                {subjects.map((subject: string) => (
+                  <Picker.Item key={subject} label={subject} value={subject} />
+                ))}
+              </Picker>
+            </View>
+          )}
         </View>
 
         <View style={styles.formGroup}>
           <Text style={styles.label}>Topic *</Text>
-          <TextInput
-            style={styles.input}
-            placeholder="e.g. Differential Calculus"
-            value={form.topic}
-            onChangeText={(text) => setForm({...form, topic: text})}
-            placeholderTextColor="#9CA3AF"
-          />
-        </View>
-
-        <View style={styles.formGroup}>
-          <Text style={styles.label}>Author</Text>
-          <TextInput
-            style={styles.input}
-            placeholder="Author name"
-            value={form.author}
-            onChangeText={(text) => setForm({...form, author: text})}
-            placeholderTextColor="#9CA3AF"
-          />
-        </View>
-
-        <View style={styles.row}>
-          <View style={[styles.formGroup, { flex: 1, marginRight: 8 }]}>
-            <Text style={styles.label}>Pages</Text>
-            <TextInput
-              style={styles.input}
-              placeholder="0"
-              value={form.pages}
-              onChangeText={(text) => setForm({...form, pages: text})}
-              keyboardType="numeric"
-              placeholderTextColor="#9CA3AF"
-            />
-          </View>
-          
-          <View style={[styles.formGroup, { flex: 1, marginLeft: 8 }]}>
-            <Text style={styles.label}>File Type</Text>
-            <View style={styles.selectContainer}>
-              <Text style={styles.selectText}>{form.fileType}</Text>
-              <Ionicons name="chevron-down" size={16} color="#6B7280" />
+          {form.subject === '' ? (
+            <View style={styles.input} >
+              <ActivityIndicator size='small' color='blue' />
             </View>
+          ) : (
+            <View style={styles.selectContainer} >
+              <Picker
+                selectedValue={form.topic}
+                onValueChange={(itemValue: string) => handleInputChange('topic', itemValue)}
+                style={styles.picker}
+                dropdownIconColor={"#6B7280"}
+              >
+                <Picker.Item label='Select a Topic' value='' />
+                {topics.map((topic: string) => (
+                  <Picker.Item key={topic} label={topic} value={topic} />
+                ))}
+              </Picker>
+            </View>
+          )}
+        </View>
+        <View style={styles.formGroup}>
+          <Text style={styles.label}>File Type</Text>
+          <View style={styles.selectContainer}>
+            <Picker
+              selectedValue={form.fileType}
+              onValueChange={(itemValue: string) => handleInputChange('fileType', itemValue)}
+              style={styles.picker}
+              dropdownIconColor="#6B7280"
+            >
+              <Picker.Item label="PDF" value="PDF" />
+              <Picker.Item label="DOC" value="DOC" />
+              <Picker.Item label="IMAGE" value="IMAGE" />
+            </Picker>
           </View>
         </View>
-
         <View style={styles.formGroup}>
           <Text style={styles.label}>Description</Text>
           <TextInput
@@ -156,12 +304,15 @@ export default function NewNoteScreen() {
             placeholderTextColor="#9CA3AF"
           />
         </View>
-
         <View style={styles.uploadSection}>
-          <TouchableOpacity style={styles.uploadButton}>
+          <TouchableOpacity 
+            style={styles.uploadButton} 
+            onPress={pickFile}
+          >
             <Ionicons name="cloud-upload-outline" size={24} color="#4A6FA5" />
             <Text style={styles.uploadButtonText}>Upload File</Text>
-            <Text style={styles.uploadHint}>PDF, DOC, PPT (Max 10MB)</Text>
+            <Text style={styles.uploadHint}>PDF, DOC, IMAGE (Max 10MB)</Text>
+            {file?.name ? <Text style={styles.uploadHint}>{file.name}</Text> : null}
           </TouchableOpacity>
         </View>
       </ScrollView>
@@ -185,6 +336,11 @@ const styles = StyleSheet.create({
   backButton: {
     padding: 8,
     marginRight: 8,
+  },
+  picker: {
+    width: '100%',
+    height: 48,
+    color: '#111827',
   },
   headerTitle: {
     fontSize: 18,
@@ -239,7 +395,6 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     backgroundColor: '#FFFFFF',
     borderRadius: 8,
-    padding: 12,
     borderWidth: 1,
     borderColor: '#E5E7EB',
   },

@@ -1,21 +1,21 @@
-import React, { useEffect, useState } from 'react';
-import { StatusBar } from 'expo-status-bar';
-import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { NavigationContainer } from '@react-navigation/native';
-import { Provider as PaperProvider, ActivityIndicator, MD3LightTheme } from 'react-native-paper';
-import { View } from 'react-native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
+import { StatusBar } from 'expo-status-bar';
+import React from 'react';
+import { View } from 'react-native';
+import { ActivityIndicator, Provider as PaperProvider } from 'react-native-paper';
+import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 // Context
 import { AuthProvider, useAuth } from './src/context/AuthContext';
 
 // Screens
+import { AppNavigator } from './src/navigation/AppNavigator';
 import { LoginScreen } from './src/screens/auth/LoginScreen';
 import { SignUpScreen } from './src/screens/auth/SignUpScreen';
-import { AppNavigator } from './src/navigation/AppNavigator';
 
 // Theme
-import { paperTheme, navigationTheme } from './src/constants/theme';
+import { navigationTheme, paperTheme } from './src/constants/theme';
 import { AuthStackParamList } from './src/navigation/types';
 
 // Create stack navigator for auth flow

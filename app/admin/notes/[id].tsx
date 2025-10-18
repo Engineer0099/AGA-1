@@ -1,33 +1,57 @@
-import React, { useState, useEffect } from 'react';
-import { 
-  View, 
-  Text, 
-  StyleSheet, 
-  ScrollView, 
-  TouchableOpacity, 
-  ActivityIndicator, 
-  Share, 
+import { databases } from '@/lib/appwrite';
+import { Ionicons } from '@expo/vector-icons';
+import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
+import React, { useEffect, useState } from 'react';
+import {
+  ActivityIndicator,
   Alert,
-  ViewStyle,
-  TextStyle,
-  ImageStyle
+  ScrollView,
+  Share,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Ionicons } from '@expo/vector-icons';
-import { useLocalSearchParams, useRouter, Stack } from 'expo-router';
 
 type Note = {
   id: string;
   title: string;
   subject: string;
   topic: string;
-  author: string;
+  creater: string;
   pages: number;
   fileType: 'PDF' | 'DOC' | 'PPT';
   uploaded: string;
   downloads: number;
   description?: string;
   fileSize?: string;
+  fileId: string;
+};
+
+//Function to Fetch Notes by Id From database
+const fetchNoteById = async (id: string): Promise<Note | null> => {
+  try {
+    const doc = await databases.getDocument('68ca66480039a017b799', 'notes', id);
+
+    return {
+      id: doc.$id,
+      title: doc.title || '',
+      subject: doc.subject || '',
+      topic: doc.topic || '',
+      creater: doc.creater || '',
+      pages: Number(doc.pages) || 0,
+      fileType: (doc.fileType as Note['fileType']) || 'PDF',
+      uploaded: doc.uploaded || '',
+      downloads: Number(doc.downloads) || 0,
+      description: doc.description,
+      fileSize: doc.fileSize,
+      fileId: doc.fileId,
+    };
+  } catch (err) {
+    console.error('fetchNoteById error:', err);
+    return null;
+  }
 };
 
 const NoteDetailScreen = () => {
@@ -38,41 +62,12 @@ const NoteDetailScreen = () => {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    // Simulate API call to fetch note details
     const fetchNote = async () => {
       try {
         setLoading(true);
-        // Mock data - replace with actual API call
-        const mockNotes: Note[] = [
-          {
-            id: '1',
-            title: 'Calculus Basics',
-            subject: 'Mathematics',
-            topic: 'Differential Calculus',
-            author: 'Dr. Smith',
-            pages: 24,
-            fileType: 'PDF',
-            uploaded: '3 days ago',
-            downloads: 189,
-            description: 'Comprehensive notes covering the fundamentals of differential calculus, including limits, derivatives, and their applications in real-world problems.',
-            fileSize: '4.2 MB'
-          },
-          {
-            id: '2',
-            title: 'Organic Chemistry Reactions',
-            subject: 'Chemistry',
-            topic: 'Organic Chemistry',
-            author: 'Prof. Johnson',
-            pages: 18,
-            fileType: 'PDF',
-            uploaded: '1 week ago',
-            downloads: 145,
-            description: 'Detailed notes on organic chemistry reactions including substitution, elimination, and addition reactions with mechanisms and examples.',
-            fileSize: '3.8 MB'
-          },
-        ];
         
-        const foundNote = mockNotes.find(n => n.id === id);
+        const foundNote = await fetchNoteById(id as string);
+        
         if (foundNote) {
           setNote(foundNote);
         } else {
@@ -94,8 +89,7 @@ const NoteDetailScreen = () => {
   };
 
   const handleView = () => {
-    // Implement view functionality
-    Alert.alert('View Note', 'This will open the note in a PDF/DOC viewer');
+    router.push(`/fileView/${note?.fileId}`as any);
   };
 
   const handleDownload = () => {
@@ -179,7 +173,7 @@ const NoteDetailScreen = () => {
             />
           </View>
           <Text style={styles.noteTitle}>{note.title}</Text>
-          <Text style={styles.noteAuthor}>By {note.author}</Text>
+          <Text style={styles.noteAuthor}>By {note.creater}</Text>
         </View>
 
         <View style={styles.detailsContainer}>

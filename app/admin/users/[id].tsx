@@ -1,11 +1,9 @@
 import { databases } from '@/lib/appwrite';
 import { Ionicons } from '@expo/vector-icons';
-import NetInfo from '@react-native-community/netinfo';
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { ActivityIndicator, Alert, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-
 
 type User = {
   id: string;
@@ -63,11 +61,6 @@ const UserDetailScreen = () => {
 
   const handleBack = () => {
     router.back();
-  };
-
-  const isOnline = async () => {
-    const state = await NetInfo.fetch();
-    return state.isConnected && state.isInternetReachable;
   };
 
 

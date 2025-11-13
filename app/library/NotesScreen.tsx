@@ -25,7 +25,6 @@ type Note = {
 const NotesScreen = () => {
   const router = useRouter();
   const [searchQuery, setSearchQuery] = useState('');
-  const [selectedSubject, setSelectedSubject] = useState<string | null>(null);
   const [selectedType, setSelectedType] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [notes, setNotes] = useState<Note[]>([]);
@@ -72,6 +71,7 @@ const NotesScreen = () => {
       setNotes([]);
       return [];
     }
+    
   }
 
   //Save Notes Locally
@@ -92,29 +92,33 @@ const NotesScreen = () => {
         try{
           fetchedNotes = await LoadNotesFromDb();
           await SaveNotesLocally(fetchedNotes);
-          setNotes(fetchedNotes);
         } catch (err){
           console.log('Error Fetching Notes Online', err);
+        } finally {
+            const topic = await AsyncStorage.getItem('current_topic');
+            const filtered = fetchedNotes.filter(
+              (t) =>
+                t?.topic === topic
+            );
+            setNotes(filtered);
         }
+        
       } else {
         try {
           fetchedNotes = await LoadNotesLocally();
-          setNotes(fetchedNotes);
         } catch (err) {
           console.log('Error Fetching Notes Locally', err);
         } finally {
-          if(user?.role !== 'admin'){
-            const subject = await AsyncStorage.getItem('current_subject');
-            const filtered = notes.filter(
+            const topic = await AsyncStorage.getItem('current_topic');
+            const filtered = fetchedNotes.filter(
               (t) =>
-                t?.subject === subject
+                t?.topic === topic
             );
             setNotes(filtered);
-          }
         }
-      }
-      console.log(fetchedNotes);
-      setLoading(false);
+    }
+        setLoading(false);
+        console.log(fetchedNotes);
     })()
   }, []);
           
@@ -176,12 +180,11 @@ const NotesScreen = () => {
   const filteredNotes = notes.filter(note => {
     const matchesSearch = note.title.toLowerCase().includes(searchQuery.toLowerCase()) || 
                          note.topic.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchesSubject = !selectedSubject || note.subject === selectedSubject;
     const matchesType = !selectedType || note.fileType === selectedType;
-    return matchesSearch && matchesSubject && matchesType;
+    return matchesSearch && matchesType;
   });
 
-  const subjects = [...new Set(notes.map(note => note.subject))];
+//   const subjects = [...new Set(notes.map(note => note.subject))];
   const fileTypes = [...new Set(notes.map(note => note.fileType))];
 
   const handleAddNote = () => {
@@ -195,6 +198,7 @@ const NotesScreen = () => {
           <Ionicons name="arrow-back" size={24} color="#4A6FA5" />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Study Notes</Text>
+        {user?.role === 'admin' && 
         <View style={styles.actions}>
           <TouchableOpacity 
             style={styles.primaryButton}
@@ -204,6 +208,7 @@ const NotesScreen = () => {
             <Text style={styles.primaryButtonText}>Add Note</Text>
           </TouchableOpacity>
         </View>
+        }
       </View>
 
       <View style={styles.searchContainer}>
@@ -223,23 +228,6 @@ const NotesScreen = () => {
           showsHorizontalScrollIndicator={false}
           contentContainerStyle={styles.filtersContainer}
         >
-          {subjects.map(subject => (
-            <TouchableOpacity 
-              key={subject}
-              style={[
-                styles.filterPill,
-                selectedSubject === subject && styles.filterPillActive
-              ]}
-              onPress={() => setSelectedSubject(selectedSubject === subject ? null : subject)}
-            >
-              <Text style={[
-                styles.filterText,
-                selectedSubject === subject && styles.filterTextActive
-              ]}>
-                {subject}
-              </Text>
-            </TouchableOpacity>
-          ))}
           {fileTypes.map(type => (
             <TouchableOpacity 
               key={type}
@@ -282,12 +270,14 @@ const NotesScreen = () => {
       )}
       
       {/* Floating Action Button */}
+      {user?.role === 'admin' && 
       <TouchableOpacity 
         style={styles.fab}
         onPress={handleAddNote}
       >
         <Ionicons name="add" size={24} color="white" />
       </TouchableOpacity>
+      }
     </SafeAreaView>
   );
 };

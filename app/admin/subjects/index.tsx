@@ -1,8 +1,8 @@
 import { useUser } from '@/hooks/useUser';
 import { databases } from '@/lib/appwrite';
+import { isOnline } from '@/utils/online';
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import NetInfo from '@react-native-community/netinfo';
 import { useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { ActivityIndicator, FlatList, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
@@ -17,10 +17,6 @@ type Subject = {
     updatedAt: string;
 };
 
-const isOnline = async () => {
-  const state = await NetInfo.fetch();
-  return state.isConnected && state.isInternetReachable;
-};
 
 const SubjectScreen = () => {
   const router = useRouter();
@@ -51,7 +47,7 @@ const SubjectScreen = () => {
         createdAt: doc.$createdAt,
         updatedAt: doc.$updatedAt,
       }));
-      setSelectedGrade(fetchedSubjects as any);
+      //setSelectedGrade(fetchedSubjects as any);
       return fetchedSubjects
     } catch (error) {
       console.error('Error fetching subjects:', error);

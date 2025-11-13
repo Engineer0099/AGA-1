@@ -4,21 +4,19 @@ import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
-import { ActivityIndicator, FlatList, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, FlatList, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 
-type Tip = {
+type Notification = {
   id: string;
   title: string;
   content: string;
-  category: string;
-  status: 'draft' | 'published' | 'archived';
   createdAt: string;
   updatedAt: string;
 };
 
-const TipsScreen = () => {
+const NotificationScreen = () => {
   const router = useRouter();
   
   const handleBack = () => {
@@ -27,106 +25,71 @@ const TipsScreen = () => {
   
 
   const [searchQuery, setSearchQuery] = useState('');
-  const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
-  const [selectedStatus, setSelectedStatus] = useState<string | null>(null);
-  const [tipsData, setTipsData] = useState<Tip[]>([]);
+  const [notificationsData, setNotificationsData] = useState<Notification[]>([]);
   const [dataLoaded , setDataLoaded] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
 
 
-  // load Published tips from appwrite database
-  const loadPublishedTipsFromDatabase = async () => {
+  // load Published Notifications from appwrite database
+  const loadNotificationsFromDatabase = async () => {
     try {
-      const response = await databases.listDocuments('68ca66480039a017b799', 'study_tip');
-      const fetchedTips = response?.documents?.map((doc: any) => ({
+      const response = await databases.listDocuments('68ca66480039a017b799', 'notification');
+      const fetchedNotifications = response?.documents?.map((doc: any) => ({
         id: doc.$id,
         title: doc.title,
-        content: doc.content,
-        category: doc.category,
-        status: 'published', // Assuming all fetched tips are published
+        content: doc.message,
         createdAt: doc.$createdAt,
         updatedAt: doc.$updatedAt,
       }));
-      return fetchedTips
+      return fetchedNotifications
     } catch (error) {
-      console.error('Error fetching tips:', error);
+      console.error('Error fetching Notifications:', error);
       return [];
     }
   };
 
-  //load Published Tips from local storage
-  const loadPublishedTipsLocally = async () => {
+  //load Published Notifications from local storage
+  const loadNotificationsLocally = async () => {
     try {
-      const storedTips = await AsyncStorage.getItem('study_tips');
-      return storedTips ? JSON.parse(storedTips) : [];
+      const storedNotifications = await AsyncStorage.getItem('notification');
+      return storedNotifications ? JSON.parse(storedNotifications) : [];
     } catch (error) {
-      console.error('Error loading published tips from local storage:', error);
+      console.error('Error loading Notifications from local storage:', error);
       return [];
     }
   };
 
-  //load Draft Tips from database
-  // const loadDraftTipsFromDatabase = async () => {
-  //   try {
-  //     const response = await databases.listDocuments('68ca66480039a017b799', 'draft_tip');
-  //     const fetchedTips = response.documents.map((doc: any) => ({
-  //       id: doc.$id,
-  //       title: doc.title,
-  //       content: doc.content,
-  //       category: doc.category,
-  //       status: 'draft', // Assuming all fetched tips are drafts
-  //       createdAt: doc.$createdAt,
-  //       updatedAt: doc.$updatedAt,
-  //     }));
-  //     return fetchedTips
-  //   } catch (error) {
-  //     console.error('Error fetching draft tips:', error);
-  //     return [];
-  //   }
-  // };
-
-  //load Draft Tips from local storage
-  // const loadDraftTipsLocally = async () => {
-  //   try {
-  //     const storedTips = await AsyncStorage.getItem('draft_tips');
-  //     return storedTips ? JSON.parse(storedTips) : [];
-  //   } catch (error) {
-  //     console.error('Error loading draft tips from local storage:', error);
-  //     return [];
-  //   }
-  // };
-
-  // Load tips on refresh
+  // Load Notifications on refresh
   useEffect(() => {
     if (!dataLoaded) {
       setIsLoading(true);
       (async () => {
         try {
           const online = await isOnline();
-          let publishedTips = [];
-          //let draftTips = [];
+          let Notifications = [];
+          //let draftNotifications = [];
           if (online) {
-            publishedTips = await loadPublishedTipsFromDatabase();
-            //draftTips = await loadDraftTipsFromDatabase();
+            Notifications = await loadNotificationsFromDatabase();
+            //draftNotifications = await loadDraftNotificationsFromDatabase();
 
-            // Save fetched tips to local storage for offline access
-            await AsyncStorage.setItem('study_tips', JSON.stringify(publishedTips));
-            //await AsyncStorage.setItem('draft_tips', JSON.stringify(draftTips));
+            // Save fetched Notifications to local storage for offline access
+            await AsyncStorage.setItem('notification', JSON.stringify(Notifications));
+            //await AsyncStorage.setItem('draft_Notifications', JSON.stringify(draftNotifications));
           } else {
-            publishedTips = await loadPublishedTipsLocally();
-            //draftTips = await loadDraftTipsLocally();
+            Notifications = await loadNotificationsLocally();
+            //draftNotifications = await loadDraftNotificationsLocally();
 
-            // Save fetched tips to local storage for offline access
-            await AsyncStorage.setItem('study_tips', JSON.stringify(publishedTips));
-            //await AsyncStorage.setItem('draft_tips', JSON.stringify(draftTips));
+            // Save fetched Notifications to local storage for offline access
+            await AsyncStorage.setItem('notification', JSON.stringify(Notifications));
+            //await AsyncStorage.setItem('draft_Notifications', JSON.stringify(draftNotifications));
           }
-          //const allTips = [...publishedTips, ...draftTips];
-          const allTips = [...publishedTips];
-          // Sort tips by updatedAt date in descending order
-          allTips.sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime());
-          setTipsData(allTips as any);
+          //const allNotifications = [...publishedNotifications, ...draftNotifications];
+          const allNotifications = [...Notifications];
+          // Sort Notifications by updatedAt date in descending order
+          allNotifications.sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime());
+          setNotificationsData(allNotifications as any);
         } catch (error) {
-          console.error('Error loading tips:', error);
+          console.error('Error loading Notifications:', error);
         } finally {
           setDataLoaded(true);
           setIsLoading(false);
@@ -135,55 +98,38 @@ const TipsScreen = () => {
     }
   }, [dataLoaded]);
 
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'published': return '#10B981';
-      //case 'draft': return '#F59E0B';
-      case 'archived': return '#6B7280';
-      default: return '#6B7280';
-    }
-  };
 
-  const filteredTips = tipsData.filter(tip => {
-    const matchesSearch = tip.title.toLowerCase().includes(searchQuery.toLowerCase()) || 
-                         tip.content.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchesCategory = !selectedCategory || tip.category === selectedCategory;
-    const matchesStatus = !selectedStatus || tip.status === selectedStatus;
-    return matchesSearch && matchesCategory && matchesStatus;
+  const filteredNotifications = notificationsData.filter(notification => {
+    const matchesSearch = notification.title.toLowerCase().includes(searchQuery.toLowerCase()) || 
+                         notification.content.toLowerCase().includes(searchQuery.toLowerCase());
+    return matchesSearch;
   });
 
-  const handleTipPress = (tipId: string) => {
-    router.push(`/admin/tips/${tipId}`);
+  const handleNotificationPress = (notificationId: string) => {
+    router.push(`/admin/notification/${notificationId}`);
   };
 
-  const handleAddTip = () => {
-    router.push('/admin/tips/new');
+  const handleAddNotification = () => {
+    router.push('/admin/notification/new');
   };
 
-  const renderTipItem = ({ item }: { item: Tip }) => (
+  const renderNotificationItem = ({ item }: { item: Notification }) => (
     <TouchableOpacity 
-      style={styles.tipCard}
-      onPress={() => handleTipPress(item.id)}
+      style={styles.notificationCard}
+      onPress={() => handleNotificationPress(item.id)}
       activeOpacity={0.8}
     >
-      <View style={styles.tipContent}>
-        <View style={styles.tipHeader}>
-          <Text style={styles.tipTitle} numberOfLines={1} ellipsizeMode="tail">
+      <View style={styles.notificationContent}>
+        <View style={styles.notificationHeader}>
+          <Text style={styles.notificationTitle} numberOfLines={1} ellipsizeMode="tail">
             {item.title}
           </Text>
-          <View style={[styles.statusBadge, { backgroundColor: getStatusColor(item.status) + '20' }]}>
-            <View style={[styles.statusDot, { backgroundColor: getStatusColor(item.status) }]} />
-            <Text style={[styles.statusText, { color: getStatusColor(item.status) }]}>
-              {item.status.charAt(0).toUpperCase() + item.status.slice(1)}
-            </Text>
-          </View>
         </View>
-        <Text style={styles.tipCategory}>{item.category}</Text>
-        <Text style={styles.tipExcerpt} numberOfLines={2} ellipsizeMode="tail">
+        <Text style={styles.notificationExcerpt} numberOfLines={2} ellipsizeMode="tail">
           {item.content}
         </Text>
-        <View style={styles.tipFooter}>
-          <Text style={styles.tipDate}>
+        <View style={styles.notificationFooter}>
+          <Text style={styles.notificationDate}>
             {new Date(item.updatedAt).toLocaleDateString()}
           </Text>
           <Ionicons name="chevron-forward" size={20} color="#CBD5E0" />
@@ -198,14 +144,14 @@ const TipsScreen = () => {
         <TouchableOpacity onPress={handleBack} style={styles.backButton}>
           <Ionicons name="arrow-back" size={24} color="#4A6FA5" />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Tips</Text>
+        <Text style={styles.headerTitle}>Notifications</Text>
         <View style={styles.actions}>
           <TouchableOpacity 
             style={styles.primaryButton}
-            onPress={handleAddTip}
+            onPress={handleAddNotification}
           >
             <Ionicons name="add" size={20} color="#FFFFFF" />
-            <Text style={styles.primaryButtonText}>Add Tip</Text>
+            <Text style={styles.primaryButtonText}>Add Notification</Text>
           </TouchableOpacity>
         </View>
       </View>
@@ -214,64 +160,38 @@ const TipsScreen = () => {
         <Ionicons name="search" size={20} color="#9CA3AF" style={styles.searchIcon} />
         <TextInput
           style={styles.searchInput}
-          placeholder="Search tips..."
+          placeholder="Search Notifications..."
           value={searchQuery}
           onChangeText={setSearchQuery}
           placeholderTextColor="#9CA3AF"
         />
       </View>
 
-      <View style={styles.filtersContainer}>
-        <ScrollView 
-          horizontal 
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={styles.filtersScroll}
-        >
-          <TouchableOpacity 
-            style={[styles.filterPill, !selectedCategory && styles.filterPillActive]}
-            onPress={() => setSelectedCategory(null)}
-          >
-            <Text style={[styles.filterText, !selectedCategory && styles.filterTextActive]}>All Categories</Text>
-          </TouchableOpacity>
-          {['study' , 'exam' , 'motivation', 'other' ].map(category => (
-            <TouchableOpacity 
-              key={category}
-              style={[styles.filterPill, selectedCategory === category && styles.filterPillActive]}
-              onPress={() => setSelectedCategory(category === selectedCategory ? null : category)}
-            >
-              <Text style={[styles.filterText, selectedCategory === category && styles.filterTextActive]}>
-                {category}
-              </Text>
-            </TouchableOpacity>
-          ))}
-        </ScrollView>
-      </View>
-
       {isLoading ? (
         <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
           <ActivityIndicator size="large" color="#4A6FA5" />
-          <Text style={{ color: '#6B7280', fontSize: 16 }}>Loading tips...</Text>
+          <Text style={{ color: '#6B7280', fontSize: 16 }}>Loading Notifications...</Text>
         </View>
-      ) : filteredTips.length === 0 ? (
+      ) : filteredNotifications.length === 0 ? (
         <View style={styles.emptyState}>
           <Ionicons name="document-text-outline" size={64} color="#D1D5DB" />
-          <Text style={styles.emptyStateText}>No Tips Found</Text>
+          <Text style={styles.emptyStateText}>No Notifications Found</Text>
           <Text style={styles.emptyStateSubtext}>
             Try adjusting your search or filter to find what you&apos;re looking for.
           </Text>
         </View>
       ) : (
         <FlatList
-        data={filteredTips}
-        renderItem={renderTipItem}
+        data={filteredNotifications}
+        renderItem={renderNotificationItem}
         keyExtractor={item => item.id}
         contentContainerStyle={styles.listContent}
         showsVerticalScrollIndicator={false}
         ListEmptyComponent={
           <View style={styles.emptyState}>
             <Ionicons name="bulb-outline" size={48} color="#E5E7EB" />
-            <Text style={styles.emptyStateText}>No tips found</Text>
-            <Text style={styles.emptyStateSubtext}>Try adding a new tip or adjusting your search</Text>
+            <Text style={styles.emptyStateText}>No Notifications found</Text>
+            <Text style={styles.emptyStateSubtext}>Try adding a new notification or adjusting your search</Text>
           </View>
         }
       />
@@ -280,7 +200,7 @@ const TipsScreen = () => {
       {/* Floating Action Button */}
       <TouchableOpacity 
         style={styles.fab}
-        onPress={handleAddTip}
+        onPress={handleAddNotification}
       >
         <Ionicons name="add" size={24} color="white" />
       </TouchableOpacity>
@@ -378,7 +298,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingBottom: 24,
   },
-  tipCard: {
+  notificationCard: {
     backgroundColor: '#FFFFFF',
     borderRadius: 12,
     padding: 16,
@@ -389,16 +309,16 @@ const styles = StyleSheet.create({
     shadowRadius: 3,
     elevation: 1,
   },
-  tipContent: {
+  notificationContent: {
     flex: 1,
   },
-  tipHeader: {
+  notificationHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
     marginBottom: 8,
   },
-  tipTitle: {
+  notificationTitle: {
     flex: 1,
     fontSize: 16,
     fontWeight: '600',
@@ -423,7 +343,7 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     textTransform: 'uppercase',
   },
-  tipCategory: {
+  notificationCategory: {
     fontSize: 12,
     color: '#4F46E5',
     backgroundColor: '#EEF2FF',
@@ -434,13 +354,13 @@ const styles = StyleSheet.create({
     marginBottom: 8,
     overflow: 'hidden',
   },
-  tipExcerpt: {
+  notificationExcerpt: {
     fontSize: 14,
     color: '#4B5563',
     lineHeight: 20,
     marginBottom: 12,
   },
-  tipFooter: {
+  notificationFooter: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
@@ -448,7 +368,7 @@ const styles = StyleSheet.create({
     borderTopColor: '#F3F4F6',
     paddingTop: 12,
   },
-  tipDate: {
+  notificationDate: {
     fontSize: 12,
     color: '#9CA3AF',
   },
@@ -487,4 +407,4 @@ const styles = StyleSheet.create({
   },
 });
 
-export default TipsScreen;
+export default NotificationScreen;

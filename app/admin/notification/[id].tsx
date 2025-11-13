@@ -3,64 +3,61 @@ import { Ionicons } from '@expo/vector-icons';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useEffect, useState } from 'react';
 import {
-  ActivityIndicator,
-  Alert,
-  ScrollView,
-  Share,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View
+    ActivityIndicator,
+    Alert,
+    ScrollView,
+    Share,
+    StyleSheet,
+    Text,
+    TouchableOpacity,
+    View
 } from 'react-native';
 import { Query } from 'react-native-appwrite';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-type Tip = {
+type Notification = {
   $id: string;
   title: string;
   content: string;
-  category: string;
   $createdAt: string;
   $updatedAt: string;
 };
 
-const TipDetailScreen = () => {
+const NotificationDetailScreen = () => {
   const router = useRouter();
   const { id } = useLocalSearchParams();
-  const [tip, setTip] = useState<Tip | null>(null);
+  const [notification, setNotification] = useState<Notification | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    const fetchTip = async () => {
+    const fetchNotification = async () => {
       try {
-        const study_tips = await databases.listDocuments({
+        const notification = await databases.listDocuments({
           databaseId: '68ca66480039a017b799',
-          collectionId: 'study_tip',
+          collectionId: 'notification',
           queries: [
             Query.equal('$id', id)
           ]
         });
-        const fetchedTip = study_tips?.documents?.map((doc: any) => ({
+        const fetchedNotification = notification?.documents?.map((doc: any) => ({
           id: doc.$id,
           title: doc.title,
-          content: doc.content,
-          category: doc.category,
+          content: doc.message,
           $createdAt: doc.$createdAt,
           $updatedAt: doc.$updatedAt,
         }))
         console.log("Fetch with id: ",id);
-        console.log("Fetched Tip: ", fetchedTip[0]);
-        setTip(fetchedTip[0] as any);
+        console.log("Fetched Notification: ", fetchedNotification[0]);
+        setNotification(fetchedNotification[0] as any);
       } catch (err) {
-        console.error('Error fetching tip:', err);
-        setError('Failed to load tip. Please try again.');
+        console.error('Error fetching Notification:', err);
+        setError('Failed to load Notification. Please try again.');
       } finally {
         setLoading(false);
       }
     };
-
-    fetchTip();
+    fetchNotification();
   }, [id]);
 
   const handleBack = () => {
@@ -68,13 +65,13 @@ const TipDetailScreen = () => {
   };
 
   const handleEdit = () => {
-    router.push(`/View/${id}/`);
+    router.push(`/admin/tips/${id}/editNotification`);
   };
 
   const handleDelete = () => {
     Alert.alert(
-      'Delete Tip',
-      'Are you sure you want to delete this tip? This action cannot be undone.',
+      'Delete Notification',
+      'Are you sure you want to delete this Notification? This action cannot be undone.',
       [
         {
           text: 'Cancel',
@@ -87,14 +84,14 @@ const TipDetailScreen = () => {
             try {
               await databases.deleteDocument(
                 '68ca66480039a017b799',
-                'study_tip', 
+                'notification', 
                 id as string
               );
               
-              router.replace('/admin/tips');
+              router.replace('/admin/notification');
             } catch (error) {
-              console.error('Error deleting tip:', error);
-              Alert.alert('Error', 'Failed to delete tip. Please try again.');
+              console.error('Error deleting notification:', error);
+              Alert.alert('Error', 'Failed to delete notification. Please try again.');
             }
           },
         },
@@ -105,14 +102,15 @@ const TipDetailScreen = () => {
   const handleShare = async () => {
     try {
       await Share.share({
-        message: `${tip?.title}\n\n${tip?.content.substring(0, 200)}...\n\nShared via AGA App`,
-        title: tip?.title,
+        message: `${notification?.title}\n\n${notification?.content.substring(0, 200)}...\n\nShared via AGA App`,
+        title: notification?.title,
       });
     } catch (error) {
-      console.error('Error sharing tip:', error);
-      Alert.alert('Error', 'Failed to share tip. Please try again.');
+      console.error('Error sharing notification:', error);
+      Alert.alert('Error', 'Failed to share notification. Please try again.');
     }
   };
+
 
   if (loading) {
     return (
@@ -137,7 +135,7 @@ const TipDetailScreen = () => {
         <TouchableOpacity onPress={handleBack} style={styles.backButton}>
           <Ionicons name="arrow-back" size={24} color="#4A6FA5" />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Tip Details</Text>
+        <Text style={styles.headerTitle}>Notification Details</Text>
         <View style={styles.headerActions}>
           <TouchableOpacity 
             style={styles.actionButton}
@@ -156,23 +154,16 @@ const TipDetailScreen = () => {
 
       <ScrollView style={styles.content}>
         <View style={styles.statusContainer}>
-          {/* <View style={[styles.statusBadge, { backgroundColor: getStatusColor(tip?.status || '') + '20' }]}>
-            <View style={[styles.statusDot, { backgroundColor: getStatusColor(tip?.status || '') }]} />
-            <Text style={[styles.statusText, { color: getStatusColor(tip?.status || '') }]}>
-              {(tip?.status || '').charAt(0).toUpperCase() + (tip?.status || '').slice(1)}
-            </Text>
-          </View> */}
           <Text style={styles.dateText}>
-            {tip?.$updatedAt ? new Date(tip.$updatedAt).toLocaleDateString() : 'N/A'}
+            {notification?.$updatedAt ? new Date(notification.$updatedAt).toLocaleDateString() : 'N/A'}
           </Text>
         </View>
 
-        <Text style={styles.category}>{tip?.category || 'Uncategorized'}</Text>
-        <Text style={styles.title}>{tip?.title || 'Untitled Tip'}</Text>
+        <Text style={styles.title}>{notification?.title || 'Untitled Notification'}</Text>
         
         <View style={styles.contentContainer}>
           <Text style={styles.contentText}>
-            {tip?.content}
+            {notification?.content}
           </Text>
         </View>
       </ScrollView>
@@ -339,4 +330,4 @@ const styles = StyleSheet.create({
   },
 });
 
-export default TipDetailScreen;
+export default NotificationDetailScreen;

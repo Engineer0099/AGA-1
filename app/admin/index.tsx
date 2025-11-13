@@ -1,11 +1,9 @@
 import { useUser } from '@/hooks/useUser';
-import { account } from '@/lib/appwrite';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import { usePreventScreenCapture } from 'expo-screen-capture';
-import * as SecureStore from 'expo-secure-store';
-import { Alert, Dimensions, FlatList, ScrollView, StyleSheet, Text, TouchableOpacity, View, ViewStyle } from 'react-native';
-import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
+import { Dimensions, FlatList, ScrollView, StyleSheet, Text, TouchableOpacity, View, ViewStyle } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 const { width } = Dimensions.get('window');
 
@@ -28,20 +26,20 @@ type StatItem = {
 
 const DashboardScreen = () => {
   usePreventScreenCapture();
-  const insets = useSafeAreaInsets();
-  const { setUser } = useUser();
+  //const insets = useSafeAreaInsets();
+  const { user } = useUser();
 
-  const handleLogout = async () => {
-    try {
-      await SecureStore.deleteItemAsync('admin_token');
-      await account.deleteSession('current');
-      setUser(null);
-      router.replace('/admin/login');
-    } catch (error) {
-      console.error('Logout error:', error);
-      Alert.alert('Error', 'Failed to log out. Please try again.');
-    }
-  };
+  // const handleLogout = async () => {
+  //   try {
+  //     await SecureStore.deleteItemAsync('admin_token');
+  //     await account.deleteSession('current');
+  //     setUser(null);
+  //     router.replace('/admin/login');
+  //   } catch (error) {
+  //     console.error('Logout error:', error);
+  //     Alert.alert('Error', 'Failed to log out. Please try again.');
+  //   }
+  // };
 
   // Quick actions data with valid routes
   const quickActions: QuickAction[] = [
@@ -85,7 +83,7 @@ const DashboardScreen = () => {
       icon: 'notifications', 
       bgColor: 'rgba(14, 165, 233, 0.1)',
       iconColor: '#0ea5e9',
-      route: '/admin/notifications'
+      route: '/admin/notification'
     },
   ];
 
@@ -116,12 +114,12 @@ const DashboardScreen = () => {
       trendValue: '8%'
     },
     { 
-      label: 'Questions', 
-      value: '1,845', 
-      icon: 'help-circle-outline', 
-      color: '#EF4444',
+      label: 'Notifications', 
+      value: '48', 
+      icon: 'notifications-outline', 
+      color: '#EC4899',
       trend: 'down',
-      trendValue: '2%'
+      trendValue: '3%'
     },
   ];
 
@@ -188,7 +186,7 @@ const DashboardScreen = () => {
       <View style={styles.header}>
         <View>
           <Text style={styles.welcomeText}>Welcome back,</Text>
-          <Text style={styles.adminName}>Admin</Text>
+          <Text style={styles.adminName}>{user?.name || "Admin"}</Text>
         </View>
         
         {/*User icon */}

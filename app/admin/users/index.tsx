@@ -1,13 +1,12 @@
 import { useUser } from '@/hooks/useUser';
 import { databases } from '@/lib/appwrite';
+import { isOnline } from '@/utils/online';
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import NetInfo from '@react-native-community/netinfo';
 import { useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { ActivityIndicator, FlatList, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-
 
 type User = {
   id: string;
@@ -24,12 +23,6 @@ const UsersScreen = () => {
   const handleBack = () => {
     router.back();
   };
-
-  const isOnline = async () => {
-    const state = await NetInfo.fetch();
-    return state.isConnected && state.isInternetReachable;
-  };
-
 
   // Load users from local storage
   const loadCachedUsers = async () => {

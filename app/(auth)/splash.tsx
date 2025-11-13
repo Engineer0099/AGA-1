@@ -1,14 +1,14 @@
 import { useUser } from '@/hooks/useUser';
 import { account, databases } from '@/lib/appwrite';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import { router } from 'expo-router';
+import * as SecureStorage from 'expo-secure-store';
 import { useEffect } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 
 
 export async function saveUserLocally(user: any) {
   try {
-    await AsyncStorage.setItem('currentUser', JSON.stringify(user));
+    await SecureStorage.setItemAsync('currentUser', JSON.stringify(user));
   } catch (error) {
     console.error("Failed to save user locally", error);
   }
@@ -16,7 +16,7 @@ export async function saveUserLocally(user: any) {
 
 export async function getUserLocally() {
   try {
-    const userString = await AsyncStorage.getItem('currentUser');
+    const userString = await SecureStorage.getItemAsync('currentUser');
     if (!userString) return null;
     return JSON.parse(userString);
   } catch (error) {

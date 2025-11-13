@@ -99,14 +99,14 @@ export default function NewNotesScreen() {
 
       // 4. Save metadata in database
       const notesData = {
-        title: form.title,
-        subject: form.subject,
-        topic: form.topic as string,
-        grade: form.grade,
-        fileType: form.fileType,
-        description: form.description,
-        creater: user?.name,
-        fileId: fileData.$id,
+        title: form.title.trim(),
+        subject: form.subject.trim(),
+        topic: form.topic.trim() as string,
+        grade: form.grade.trim(),
+        fileType: form.fileType.trim(),
+        description: form.description.trim(),
+        creater: user?.name.trim(),
+        fileId: fileData.$id.trim(),
       };
 
       await databases.createDocument(
@@ -202,6 +202,7 @@ export default function NewNotesScreen() {
               style={styles.picker}
               dropdownIconColor="#6B7280"
             >
+              <Picker.Item label='Pre School' value="pre-school" />
               <Picker.Item label="Standard 1" value="standard_1" />
               <Picker.Item label="Standard 2" value="standard_2" />
               <Picker.Item label="Standard 3" value="standard_3" />
@@ -214,8 +215,11 @@ export default function NewNotesScreen() {
               <Picker.Item label="Form 3" value="form-3" />
               <Picker.Item label="Form 4" value="form-4" />
               <Picker.Item label="Form 5" value="form-5" />
-              <Picker.Item label="Form 6" value="form-6" /> 
-              <Picker.Item label="University" value="university" />               
+              <Picker.Item label="Form 6" value="form-6" />
+              <Picker.Item label='Short Course' value="short-course" />
+              <Picker.Item label='College' value="college" />
+              <Picker.Item label="University" value="university" />
+              <Picker.Item label="Ujasiliamali" value="ujasiliamali" />
             </Picker>
           </View>
         </View>

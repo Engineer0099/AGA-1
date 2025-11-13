@@ -1,7 +1,8 @@
 import { useUser } from '@/hooks/useUser';
 import { databases } from '@/lib/appwrite';
+import { isOnline } from '@/utils/online';
 import { Ionicons } from '@expo/vector-icons';
-import NetInfo from '@react-native-community/netinfo';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { ActivityIndicator, Modal, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
@@ -18,16 +19,13 @@ const SubjectDetailsScreen = () => {
     const [subject, setSubject] = useState(null as any);
     const [fetching, setFetching] = useState(false);
     const [topic, setTopic] = useState({})
+    const [paper, setPaper ] = useState({});
+    const [selectedTab, setSelectedTab] = useState<'topic' | 'paper'>('topic');
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null as string | null);
     const [isVisible, setIsVisible] = useState(false);
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [newTopicData, setNewTopicData] = useState({ title: '', description: '', subject: '', creater: '' , no_of_lessons: 0});
-
-    const isOnline = async () => {
-        const state = await NetInfo.fetch();
-        return state.isConnected && state.isInternetReachable;
-    };
 
 
     // Reusable InfoRow component
@@ -146,8 +144,46 @@ const SubjectDetailsScreen = () => {
         }
       };
 
-      loadTopicForThisSubject();
-    }, [subject]);
+      //Load Papers for this Subject
+      const LoadPaperForThisSubject = async () =>{
+        setFetching(true);
+        setError(null);
+        try {
+          if(!subject){
+            return;
+          }
+          if (!await isOnline()) {
+            setError('No internet connection. Please check your connection and try again.');
+            return;
+          }
+
+          // List all topics and filter client-side for this subject (by name or id)
+          const res: any = await databases.listDocuments('68ca66480039a017b799', 'past_paper');
+          const docs: any[] = res?.documents ?? [];
+
+          const filtered = docs.filter(
+            (t) =>
+              t?.subject === subject.name ||
+              t?.subject === subject.$id ||
+              (typeof t?.subject === 'object' && (t.subject.$id === subject.$id || t.subject.name === subject.name))
+          );
+
+          setPaper(filtered)
+        } catch (err) {
+          console.error('Error loading papers for subject:', err);
+          setError('Failed to load papers. Please try again later.');
+        } finally {
+          setFetching(false);
+        }
+      }
+
+      if(selectedTab === 'topic'){
+        loadTopicForThisSubject();
+      } else if(selectedTab === 'paper'){
+        LoadPaperForThisSubject();
+      }
+
+    }, [subject, selectedTab]);
 
     const handleBack = () => {
         router.back();
@@ -271,32 +307,94 @@ const SubjectDetailsScreen = () => {
                     <InfoRow label="Created By" value={subject.creater || 'N/A'} icon="person-outline" valueStyle={{ textTransform: 'capitalize' }} />
                 </View>
                 }
-                {/* List Of Topics in this Subject */}
+                {/* List Of Topics/Papers in this Subject */}
                 <View style={styles.section}>
-                  <Text style={styles.sectionTitle}>Topics</Text>
+                  <View style={{ flexDirection: 'row', marginBottom: 12, backgroundColor: '#F3F4F6', borderRadius: 8, padding: 4 }}>
+                    <TouchableOpacity
+                      onPress={() => setSelectedTab('topic')}
+                      style={{
+                        flex: 1,
+                        paddingVertical: 8,
+                        borderRadius: 6,
+                        alignItems: 'center',
+                        backgroundColor: selectedTab === 'topic' ? '#4A6FA5' : 'transparent',
+                      }}
+                    >
+                      <Text style={{ color: selectedTab === 'topic' ? '#fff' : '#374151', fontWeight: '600' }}>Topics</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      onPress={() => setSelectedTab('paper')}
+                      style={{
+                        flex: 1,
+                        paddingVertical: 8,
+                        borderRadius: 6,
+                        alignItems: 'center',
+                        backgroundColor: selectedTab === 'paper' ? '#4A6FA5' : 'transparent',
+                      }}
+                    >
+                      <Text style={{ color: selectedTab === 'paper' ? '#fff' : '#374151', fontWeight: '600' }}>Papers</Text>
+                    </TouchableOpacity>
+                  </View>
+
                   {fetching ? (
                     <ActivityIndicator size="small" color="#4A6FA5" />
-                  ) : topic && Array.isArray(topic) && topic.length > 0 ? (
-                    topic.map((item: any) => (
-                      <ScrollView key={item.$id} style={styles.actionButton}>
-                        <View>
-                          <Text style={{ fontSize: 16, fontWeight: '500', color: '#1F2937' }}>
-                            {item.title}
-                          </Text>
-                          <Text style={{ fontSize: 14, color: '#6B7280', marginTop: 4 }}>
-                            {item.description}
-                          </Text>
-                          <Text style={{ fontSize: 12, color: '#9CA3AF', marginTop: 4 }}>
-                            Created by: {item.creater}
-                          </Text>
+                  ) : selectedTab === 'topic' ? (
+                    <>
+                      <Text style={styles.sectionTitle}>Topics</Text>
+                      {Array.isArray(topic) && topic.length > 0 ? (
+                        topic.map((item: any) => (
+                          <TouchableOpacity
+                           key={item.$id} 
+                           style={styles.actionButton}
+                           onPress={async () => {
+                            await AsyncStorage.setItem('current_topic', item.title);
+                            router.push('/library/NotesScreen' as any);
+                           }}
+                          >
+                            <View style={{ flex: 1 }}>
+                              <Text style={{ fontSize: 16, fontWeight: '500', color: '#1F2937' }}>{item.title}</Text>
+                              {item.description ? (
+                                <Text style={{ fontSize: 14, color: '#6B7280', marginTop: 4 }}>{item.description}</Text>
+                              ) : null}
+                              <Text style={{ fontSize: 12, color: '#9CA3AF', marginTop: 4 }}>Created by: {item.creater || 'N/A'}</Text>
+                            </View>
+                          </TouchableOpacity>
+                        ))
+                      ) : (
+                        <View style={styles.placeholderBox}>
+                          <Ionicons name="documents-outline" size={32} color="#9CA3AF" />
+                          <Text style={styles.placeholderText}>No topics available for this subject</Text>
                         </View>
-                      </ScrollView>
-                    ))
+                      )}
+                    </>
                   ) : (
-                    <View style={styles.placeholderBox}>
-                      <Ionicons name="documents-outline" size={32} color="#9CA3AF" />
-                      <Text style={styles.placeholderText}>No topics available for this subject</Text>
-                    </View>
+                    <>
+                      <Text style={styles.sectionTitle}>Papers</Text>
+                      {Array.isArray(paper) && paper.length > 0 ? (
+                        paper.map((p: any) => (
+                          <TouchableOpacity 
+                            key={p.$id} 
+                            style={styles.actionButton}
+                            onPress={() => router.push(`/admin/papers/${p.$id}`)}
+                          >
+                            <View style={{ flex: 1 }}>
+                              <Text style={{ fontSize: 16, fontWeight: '500', color: '#1F2937' }}>{p.title || p.name || 'Untitled Paper'}</Text>
+                              {p.description ? (
+                                <Text style={{ fontSize: 14, color: '#6B7280', marginTop: 4 }}>{p.description}</Text>
+                              ) : p.year ? (
+                                <Text style={{ fontSize: 14, color: '#6B7280', marginTop: 4 }}>Year: {p.year}</Text>
+                              ) : null}
+                              <Text style={{ fontSize: 12, color: '#9CA3AF', marginTop: 4 }}>Uploaded by: {p.creater || 'N/A'}</Text>
+                            </View>
+                          </TouchableOpacity>
+                        ))
+                      ) : (
+                        <View style={styles.placeholderBox}>
+                          <Ionicons name="newspaper-outline" size={32} color="#9CA3AF" />
+                          <Text style={styles.placeholderText}>No past papers available for this subject</Text>
+                        </View>
+                      )}
+                    </>
                   )}
                 </View>
                 <View style={styles.section}>

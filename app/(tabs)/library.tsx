@@ -3,7 +3,7 @@ import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { router } from 'expo-router';
 import React from 'react';
-import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { ScrollView, StyleSheet, Text, TouchableOpacity, View, ViewStyle } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 
@@ -21,14 +21,17 @@ export default function LibraryScreen() {
     "Primary School",
     "Secondary School",
     "Advanced Level",
+    "Short-Course",
+    "College",
     "University",
+    "Ujasiliamali",
   ];
 
   const Level: React.FC<{ one: string }> = ({ one }) => (
         <TouchableOpacity
           style={styles.card}
           onPress={async() => {
-            if(one === "Pre-School" || one === "University"){
+            if(one === "Pre-School" || one === "Short-Course" || one === "College" || one === "University" || one === "Ujasiliamali"){
               await AsyncStorage.setItem('current_grade', one.toLowerCase());
               navigateTo('/admin/subjects');
             }else{
@@ -47,16 +50,30 @@ export default function LibraryScreen() {
 
   return (
     <SafeAreaView style={styles.container}>
-      <View style={styles.header}>
+      {/* <View style={styles.header}>
         <View style={styles.container}>
           <Text style={{fontSize: 20}}>Hellow!,</Text>
           <Text style={{fontSize: 16}}>{user?.name || "Student"}</Text>
         </View>
         <TouchableOpacity
          style={{}}
-         onPress={() => navigateTo('/admin/profile')}
+         
         >
           <Ionicons name='person-circle-outline' size={45} color={'blue'} />
+        </TouchableOpacity>
+      </View> */}
+      <View style={styles.header}>
+        <View>
+          <Text style={styles.welcomeText}>Welcome back,</Text>
+          <Text style={styles.studentName}>{user?.name || "Student"}</Text>
+        </View>
+        
+        {/*User icon */}
+        <TouchableOpacity 
+          style={styles.backButton}
+          onPress={() => navigateTo('/admin/profile')}
+        >
+          <Ionicons name="person-circle-outline" size={45} color="#6d9bdbff" />
         </TouchableOpacity>
       </View>
 
@@ -82,11 +99,12 @@ const styles = StyleSheet.create({
   header: {
     flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'space-between',
     padding: 16,
     backgroundColor: '#FFFFFF',
     borderBottomWidth: 1,
     borderBottomColor: '#EDF2F7',
-  },
+  } as ViewStyle,
   headerSpacer: {
     width: 40,
   },
@@ -156,6 +174,16 @@ const styles = StyleSheet.create({
     flexWrap: 'wrap',
     justifyContent: 'space-between',
     paddingHorizontal: 16,
+  },
+  welcomeText: {
+    fontSize: 14,
+    color: '#64748B',
+    marginBottom: 2,
+  },
+  studentName: {
+    fontSize: 20,
+    fontWeight: '600',
+    color: '#1A202C',
   },
   card: {
     width: '48%',

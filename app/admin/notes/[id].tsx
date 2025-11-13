@@ -1,3 +1,4 @@
+import { useUser } from '@/hooks/useUser';
 import { databases } from '@/lib/appwrite';
 import { Ionicons } from '@expo/vector-icons';
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
@@ -56,6 +57,7 @@ const fetchNoteById = async (id: string): Promise<Note | null> => {
 
 const NoteDetailScreen = () => {
   const { id } = useLocalSearchParams();
+  const { user } = useUser();
   const router = useRouter();
   const [note, setNote] = useState<Note | null>(null);
   const [loading, setLoading] = useState(true);
@@ -89,12 +91,22 @@ const NoteDetailScreen = () => {
   };
 
   const handleView = () => {
-    router.push(`/fileView/${note?.fileId}`as any);
+    if (!note?.fileId) {
+      Alert.alert('File not available', 'This note does not have an associated file to view.');
+      return;
+    }
+
+    console.log("Viewing note with ID:", note.id);
+    router.push(`/admin/tips/${note.id}/view` as any);
   };
 
   const handleDownload = () => {
     // Implement download functionality
-    Alert.alert('Download', 'Starting download...');
+    if (user?.plan === 'free'){
+      Alert.alert("Download", "You can't download because you're in free plan. Please Subscribe to download.");
+    } else {
+      Alert.alert("Download", "The Download Starts. But can only access this when you are in Premium Plan");
+    }
   };
 
   const handleShare = async () => {
@@ -105,6 +117,7 @@ const NoteDetailScreen = () => {
       });
     } catch (error) {
       Alert.alert('Error', 'Failed to share note');
+      console.log("Failed to share note: ", error);
     }
   };
 

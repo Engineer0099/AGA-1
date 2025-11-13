@@ -1,31 +1,28 @@
 import { databases } from '@/lib/appwrite';
 import { Ionicons } from '@expo/vector-icons';
-import { Picker } from '@react-native-picker/picker';
 import { useRouter } from 'expo-router';
 import React, { useState } from 'react';
 import {
-  Alert,
-  KeyboardAvoidingView,
-  Platform,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  View,
+    Alert,
+    KeyboardAvoidingView,
+    Platform,
+    ScrollView,
+    StyleSheet,
+    Text,
+    TextInput,
+    TouchableOpacity,
+    View,
 } from 'react-native';
 import { ID } from 'react-native-appwrite';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 
-const NewTipScreen = () => {
+const NewNotificationScreen = () => {
   const router = useRouter();
   
   const [formData, setFormData] = useState({
     title: '',
-    content: '',
-    category: 'study' as 'study' | 'motivation' | 'exam'| 'other',
-    status: 'draft' as 'draft' | 'published' | 'archived',
+    message: '',
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -41,7 +38,7 @@ const NewTipScreen = () => {
   };
 
   const handleSubmit = async () => {
-    if (!formData.title.trim() || !formData.content.trim()) {
+    if (!formData.title.trim() || !formData.message.trim()) {
       Alert.alert('Error', 'Please fill in all required fields');
       return;
     }
@@ -49,26 +46,25 @@ const NewTipScreen = () => {
     setIsSubmitting(true);
     
     try {
-      const newTip = {
+      const newNotification = {
         title: formData.title,
-        content: formData.content,
-        category: formData.category,
+        message: formData.message,
       };
         await databases.createDocument(
           '68ca66480039a017b799',
-          'study_tip',
+          'notification',
           ID.unique(),
-          newTip
+          newNotification
         );
-      Alert.alert('Success', 'Tip created successfully!', [
+      Alert.alert('Success', 'Notification created successfully!', [
         { 
           text: 'OK', 
-          onPress: () => router.replace('/admin/tips') 
+          onPress: () => router.replace('/admin/notification') 
         }
       ]);
     } catch (error) {
-      console.error('Error creating tip:', error);
-      Alert.alert('Error', 'Failed to create tip. Please try again.');
+      console.error('Error creating Notification:', error);
+      Alert.alert('Error', 'Failed to create Notification. Please try again.');
     } finally {
       setIsSubmitting(false);
     }
@@ -80,7 +76,7 @@ const NewTipScreen = () => {
         <TouchableOpacity onPress={handleBack} style={styles.backButton}>
           <Ionicons name="arrow-back" size={24} color="#4A6FA5" />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>New Tip</Text>
+        <Text style={styles.headerTitle}>New Notification</Text>
         <View style={styles.headerActions}>
           <TouchableOpacity 
             style={[styles.saveButton, isSubmitting && styles.saveButtonDisabled]}
@@ -104,7 +100,7 @@ const NewTipScreen = () => {
             <Text style={styles.label}>Title *</Text>
             <TextInput
               style={styles.input}
-              placeholder="Enter tip title"
+              placeholder="Enter Notification title..."
               value={formData.title}
               onChangeText={(text) => handleInputChange('title', text)}
               placeholderTextColor="#9CA3AF"
@@ -112,36 +108,18 @@ const NewTipScreen = () => {
           </View>
 
           <View style={styles.formGroup}>
-            <Text style={styles.label}>Content *</Text>
+            <Text style={styles.label}>Message *</Text>
             <TextInput
               style={[styles.input, styles.textArea]}
-              placeholder="Enter tip content (supports markdown)"
-              value={formData.content}
-              onChangeText={(text) => handleInputChange('content', text)}
+              placeholder="Enter Notification Message...."
+              value={formData.message}
+              onChangeText={(text) => handleInputChange('message', text)}
               placeholderTextColor="#9CA3AF"
               multiline
               numberOfLines={6}
               textAlignVertical="top"
             />
           </View>
-
-          <View style={styles.formGroup}>
-            <Text style={styles.label}>Category</Text>
-            <View style={styles.pickerContainer}>
-              <Picker
-                selectedValue={formData.category}
-                onValueChange={(itemValue: string) => handleInputChange('category', itemValue)}
-                style={styles.picker}
-                dropdownIconColor="#6B7280"
-              >
-                <Picker.Item label="Study" value="study" />
-                <Picker.Item label="Motivation" value="motivation" />
-                <Picker.Item label="Exam" value="exam" />
-                <Picker.Item label="Other" value="other" />
-              </Picker>
-            </View>
-          </View>
-
         </ScrollView>
       </KeyboardAvoidingView>
     </SafeAreaView>
@@ -254,4 +232,4 @@ const styles = StyleSheet.create({
   },
 });
 
-export default NewTipScreen;
+export default NewNotificationScreen;

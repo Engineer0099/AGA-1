@@ -98,11 +98,11 @@ const GradeScreen = () => {
         </View>
 
       {/* Some inspiration words */}
-        <View style={styles.questionContainer}>
-            <Text style={styles.questionText}>
+        <View style={styles.section}>
+            <Text style={styles.sectionTitle}>
                 {user?.name ? `Welcome, ${user.name.split(' ')[0]}!` : 'Welcome!'}
             </Text>
-            <Text style={styles.optionText}>
+            <Text style={styles.description}>
                 Select a grade to view subjects, lessons and practice questions. Keep going — small steps lead to big progress.
             </Text>
         </View>
@@ -131,6 +131,28 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#F8FAFF',
+  },
+    section: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 3,
+    elevation: 1,
+  },
+    sectionTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#1F2937',
+    marginBottom: 16,
+  },
+    description: {
+    fontSize: 14,
+    lineHeight: 22,
+    color: '#4B5563',
   },
   header: {
     flexDirection: 'row',

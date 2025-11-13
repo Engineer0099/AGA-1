@@ -1,10 +1,11 @@
+import { useUser } from '@/hooks/useUser';
 import { Ionicons } from '@expo/vector-icons';
 import { Picker } from '@react-native-picker/picker';
 import * as DocumentPicker from 'expo-document-picker';
 import { useRouter } from 'expo-router';
-import { useState } from 'react';
-import { Alert, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
-import { ID } from 'react-native-appwrite';
+import { useEffect, useState } from 'react';
+import { ActivityIndicator, Alert, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { ID, Query } from 'react-native-appwrite';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { databases, storage } from '../../../lib/appwrite';
 
@@ -12,6 +13,7 @@ type PaperForm = {
   title: string;
   subject: string;
   year: string;
+  grade: string;
   type: 'Midterm' | 'Final' | 'Quiz' | 'Practice';
   fileType: 'PDF' | 'DOC' | 'IMAGE';
   description: string;
@@ -19,12 +21,15 @@ type PaperForm = {
 
 export default function NewPaperScreen() {
   const router = useRouter();
+  const { user } = useUser();
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [subjects, setSubjects] = useState<string[]>([]);
   const [form, setForm] = useState<PaperForm>({
     title: '',
     subject: '',
     year: new Date().getFullYear().toString(),
     type: 'Midterm',
+    grade: '',
     fileType: 'PDF',
     description: '',
   });
@@ -86,13 +91,15 @@ export default function NewPaperScreen() {
 
       // 4. Save metadata in database
       const paperData = {
-        title: form.title,
-        subject: form.subject,
-        year: form.year as string,
-        type: form.type,
-        fileType: form.fileType,
-        description: form.description,
-        fileId: fileData.$id,
+        title: form.title.trim(),
+        subject: form.subject.trim(),
+        year: form.year.trim() as string,
+        type: form.type.trim(),
+        creater: user?.name.trim(),
+        grade: form.grade.trim(),
+        fileType: form.fileType.trim(),
+        description: form.description.trim(),
+        fileId: fileData.$id.trim(),
       };
 
       await databases.createDocument(
@@ -111,6 +118,30 @@ export default function NewPaperScreen() {
       setIsSubmitting(false);
     }
   };
+
+  useEffect( () => {
+    form.subject = '';
+    const fetchSubjects = async () => {
+      try {
+        const response = await databases.listDocuments(
+          '68ca66480039a017b799',
+          'subject',
+          [
+            Query.equal('grade', form.grade)
+          ]
+        );
+        setSubjects(response.documents.map(doc => doc.name) as any);
+      } catch (error) {
+        console.error('Error fetching subjects:', error);
+      }
+      
+    };
+
+    if (form.grade) {
+      fetchSubjects();
+    }
+  }, [form.grade]);
+  
 
   return (
     <SafeAreaView style={styles.container}>
@@ -144,16 +175,59 @@ export default function NewPaperScreen() {
           />
         </View>
 
+        <Text style={styles.label}>Grade *</Text>
+        <View style={styles.selectContainer}>
+          <Picker
+            selectedValue={form.grade}
+            onValueChange={(itemValue: string) => handleInputChange('grade', itemValue)}
+            style={styles.picker}
+            dropdownIconColor="#6B7280"
+          >
+            <Picker.Item label='Pre School' value="pre-school" />
+            <Picker.Item label="Standard 1" value="standard_1" />
+            <Picker.Item label="Standard 2" value="standard_2" />
+            <Picker.Item label="Standard 3" value="standard_3" />
+            <Picker.Item label="Standard 4" value="standard_4" />
+            <Picker.Item label="Standard 5" value="standard_5" />
+            <Picker.Item label="Standard 6" value="standard_6" />
+            <Picker.Item label="Standard 7" value="standard_7" />
+            <Picker.Item label="Form 1" value="form-1" />
+            <Picker.Item label="Form 2" value="form-2" />
+            <Picker.Item label="Form 3" value="form-3" />
+            <Picker.Item label="Form 4" value="form-4" />
+            <Picker.Item label="Form 5" value="form-5" />
+            <Picker.Item label="Form 6" value="form-6" />
+            <Picker.Item label='Short Course' value="short-course" />
+            <Picker.Item label='College' value="college" />
+            <Picker.Item label="University" value="university" />
+            <Picker.Item label="Ujasiliamali" value="ujasiliamali" />                
+          </Picker>
+        </View>
+        
+
         <View style={styles.formGroup}>
           <Text style={styles.label}>Subject *</Text>
-          <TextInput
-            style={styles.input}
-            placeholder="e.g. Mathematics"
-            value={form.subject}
-            onChangeText={(text) => setForm({...form, subject: text})}
-            placeholderTextColor="#9CA3AF"
-          />
+          {form.grade === '' ? (
+            <View style={styles.input}>
+              <ActivityIndicator size='small' color='blue' />
+            </View>
+          ) : (
+            <View style={styles.selectContainer}>
+              <Picker
+                selectedValue={form.subject}
+                onValueChange={(itemValue: string) => handleInputChange('subject', itemValue)}
+                style={styles.picker}
+                dropdownIconColor="#6B7280"
+              >
+                <Picker.Item label="Select a subject" value="" />
+                {subjects.map((subject: string) => (
+                  <Picker.Item key={subject} label={subject} value={subject} />
+                ))}
+              </Picker>
+            </View>
+          )}
         </View>
+        
 
         <View style={styles.row}>
           <View style={[styles.formGroup, { flex: 1, marginRight: 8 }]}>
@@ -185,13 +259,6 @@ export default function NewPaperScreen() {
             </View>
           </View>
 
-          {/* <View style={[styles.formGroup, { flex: 1, marginLeft: 8 }]}>
-            <Text style={styles.label}>Type</Text>
-            <View style={styles.selectContainer}>
-              <Text style={styles.selectText}>{form.type}</Text>
-              <Ionicons name="chevron-down" size={16} color="#6B7280" />
-            </View>
-          </View> */}
         </View>
 
 
@@ -210,13 +277,7 @@ export default function NewPaperScreen() {
             </Picker>
           </View>
         </View>
-        {/* <View style={styles.formGroup}>
-          <Text style={styles.label}>File Type</Text>
-          <View style={styles.selectContainer}>
-            <Text style={styles.selectText}>{form.fileType}</Text>
-            <Ionicons name="chevron-down" size={16} color="#6B7280" />
-          </View>
-        </View> */}
+
         <View style={styles.formGroup}>
           <Text style={styles.label}>Description</Text>
           <TextInput

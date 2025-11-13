@@ -92,6 +92,7 @@ const NewSubjectScreen = () => {
                     itemStyle={{ fontSize: 16, color: '#111827' }}
                 >
                     <Picker.Item label="Select grade" value="" />
+                    <Picker.Item label='Pre School' value="pre-school" />
                     <Picker.Item label="Standard 1" value="standard_1" />
                     <Picker.Item label="Standard 2" value="standard_2" />
                     <Picker.Item label="Standard 3" value="standard_3" />
@@ -105,7 +106,9 @@ const NewSubjectScreen = () => {
                     <Picker.Item label="Form 4" value="form-4" />
                     <Picker.Item label="Form 5" value="form-5" />
                     <Picker.Item label="Form 6" value="form-6" />
-                    <Picker.Item label="University" value="university" />
+                    <Picker.Item label='Short Course' value="short-course" />
+                    <Picker.Item label='College' value="college" />
+                    <Picker.Item label="University" value="university" />  
                 </Picker>
                 <TouchableOpacity
                     onPress={handleSubmit}

@@ -1,17 +1,12 @@
 import { databases } from '@/lib/appwrite';
+import { isOnline } from '@/utils/online';
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import NetInfo from '@react-native-community/netinfo';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { Alert, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-
-const isOnline = async () => {
-  const state = await NetInfo.fetch();
-  return state.isConnected && state.isInternetReachable;
-};
 
 export default function PaperDetailScreen() {
   const { id } = useLocalSearchParams();
@@ -79,7 +74,9 @@ export default function PaperDetailScreen() {
   };
 
   const handleView = () => {
-    router.push('/admin/papers/FileView');
+    console.log("Viewing paper with ID:", paper.$id);
+    console.log("File ID:", paper.fileId);
+    router.push(`/View/${id}/`);
   };
 
   if (loading) {

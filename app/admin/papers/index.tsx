@@ -1,7 +1,7 @@
 import { databases } from '@/lib/appwrite';
+import { isOnline } from '@/utils/online';
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import NetInfo from '@react-native-community/netinfo';
 import { useRouter } from 'expo-router';
 import React, { useEffect, useState } from 'react';
 import {
@@ -24,11 +24,6 @@ type Paper = {
   fileType: 'PDF' | 'DOC' | 'IMAGE';
   uploaded: string;
   downloads: number;
-};
-
-const isOnline = async () => {
-  const state = await NetInfo.fetch();
-  return state.isConnected && state.isInternetReachable;
 };
 
 const PapersScreen = () => {

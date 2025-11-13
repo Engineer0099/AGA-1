@@ -1,24 +1,37 @@
 import { account, databases } from '@/lib/appwrite';
 import { Ionicons, MaterialIcons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import NetInfo from '@react-native-community/netinfo';
 import { router } from 'expo-router';
 import * as SecureStore from 'expo-secure-store';
 import { useEffect, useState } from 'react';
 import { ActivityIndicator, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useUser } from '../../hooks/useUser';
+import { isOnline } from '../../utils/online';
 
 // Define types for tips and notifications
 type TipCategory = 'all' | 'study' | 'exam' | 'motivation' | 'other';
 
-const isOnline = async () => {
-  const state = await NetInfo.fetch();
-  return state.isConnected ?? false;
+type Tip = {
+  id: string;
+  title: string;
+  content: string;
+  category: 'study' | 'exam' | 'motivation' | 'other';
+  saved: boolean;
+  readTime: string;
+};
+
+type Notification = {
+  id: string;
+  title: string;
+  message: string;
+  time: string;
+  read: boolean;
+  type: 'material' | 'reminder' | 'study';
 };
 
 // save all tips locally
-const saveTipsLocally = async (tips: typeof STUDY_TIPS) => {
+const saveTipsLocally = async (tips: Tip[]) => {
   try {
     await AsyncStorage.setItem('study_tips', JSON.stringify(tips));
   } catch (error) {
@@ -36,7 +49,7 @@ const saveSavedTipsLocally = async (savedTips: string[]) => {
 };
 
 // load all tips from local storage
-const loadTipsLocally = async (): Promise<typeof STUDY_TIPS | null> => {
+const loadTipsLocally = async (): Promise<Tip[] | null> => {
   try {
     const tipsString = await AsyncStorage.getItem('study_tips');
     return tipsString ? JSON.parse(tipsString) : null;
@@ -58,11 +71,11 @@ const loadSavedTipsLocally = async (): Promise<string[] | null> => {
 };
 
 // load tips from appwrite database
-const fetchTipsFromDatabase = async (): Promise<typeof STUDY_TIPS> => {
+const fetchTipsFromDatabase = async (): Promise<Tip[]> => {
   try {
     const response = await databases.listDocuments('68ca66480039a017b799', 'study_tip');
     // Cast via unknown first to satisfy TypeScript when the external SDK returns a generic document type.
-    return response.documents as unknown as typeof STUDY_TIPS;
+    return response.documents as unknown as Tip[];
   } catch (error) {
     console.error('Error fetching tips from database:', error);
     return [];
@@ -70,7 +83,7 @@ const fetchTipsFromDatabase = async (): Promise<typeof STUDY_TIPS> => {
 };
 
 // save all notifications locally
-const saveNotificationsLocally = async (notifications: typeof NOTIFICATIONS) => {
+const saveNotificationsLocally = async (notifications: Notification[]) => {
   try {
     await AsyncStorage.setItem('notifications', JSON.stringify(notifications));
   } catch (error) {
@@ -99,7 +112,7 @@ const loadReadNotificationsLocally = async (): Promise<string[] | null> => {
 };
 
 // load notifications from local storage
-const loadNotificationsLocally = async (): Promise<typeof NOTIFICATIONS | null> => {
+const loadNotificationsLocally = async (): Promise<Notification[] | null> => {
   try {
     const notificationsString = await AsyncStorage.getItem('notifications');
     return notificationsString ? JSON.parse(notificationsString) : null;
@@ -110,104 +123,28 @@ const loadNotificationsLocally = async (): Promise<typeof NOTIFICATIONS | null> 
 };
 
 // load notifications from appwrite database
-const fetchNotificationsFromDatabase = async (): Promise<typeof NOTIFICATIONS> => {
+const fetchNotificationsFromDatabase = async (): Promise<Notification[]> => {
   try {
     const response = await databases.listDocuments('68ca66480039a017b799', 'notification');
     // Cast via unknown first to satisfy TypeScript when the external SDK returns a generic document type.
-    return response.documents as unknown as typeof NOTIFICATIONS;
+    return response.documents as unknown as Notification[];
   } catch (error) {
     console.error('Error fetching notifications from database:', error);
     return [];
   }
 };
 
-const STUDY_TIPS = [
-  {
-    id: '1',
-    title: 'Effective Note-Taking',
-    content: 'Use the Cornell note-taking system to organize your notes into cues, notes, and summary sections for better retention.',
-    category: 'study' as const,
-    saved: true,
-    readTime: '3 min',
-  },
-  {
-    id: '2',
-    title: 'Pomodoro Technique',
-    content: 'Study for 25 minutes, then take a 5-minute break. After four sessions, take a longer break of 15-30 minutes.',
-    category: 'study' as const,
-    saved: false,
-    readTime: '2 min',
-  },
-  {
-    id: '3',
-    title: 'Exam Day Checklist',
-    content: 'Prepare your materials the night before: pens, pencils, calculator, ID, and any allowed resources.',
-    category: 'exam' as const,
-    saved: true,
-    readTime: '2 min',
-  },
-  {
-    id: '4',
-    title: 'Stay Motivated',
-    content: 'Set small, achievable goals and reward yourself when you reach them to maintain motivation.',
-    category: 'motivation' as const,
-    saved: false,
-    readTime: '1 min',
-  },
-  {
-    id: '5',
-    title: 'Active Recall',
-    content: 'Test yourself on the material you\'re studying instead of just re-reading it to improve memory retention.',
-    category: 'study' as const,
-    saved: false,
-    readTime: '2 min',
-  },
-  {
-    id: '6',
-    title: 'Healthy Study Habits',
-    content: 'Take regular breaks, stay hydrated, and ensure you get enough sleep to keep your mind sharp.',
-    category: 'other' as const,
-    saved: true,
-    readTime: '3 min',
-  },
-];
 
-const NOTIFICATIONS = [
-  {
-    id: '1',
-    title: 'New Material Added',
-    message: 'New Mathematics Form 2 notes on Algebra have been added to your library.',
-    time: '2h ago',
-    read: false,
-    type: 'material' as const,
-  },
-  {
-    id: '2',
-    title: 'Upcoming Test',
-    message: 'You have a Biology test on Human Anatomy in 3 days.',
-    time: '1d ago',
-    read: false,
-    type: 'reminder' as const,
-  },
-  {
-    id: '3',
-    title: 'Study Reminder',
-    message: 'Time to review your Chemistry notes. You studied this 2 days ago.',
-    time: '1d ago',
-    read: false,
-    type: 'study' as const,
-  },
-];
 
 export default function ExtrasScreen() {
   const [activeTab, setActiveTab] = useState<'tips' | 'notifications' | 'settings'>('tips');
-  const { user, setUser } = useUser();
+  const { setUser } = useUser();
   const [isLoading, setIsLoading] = useState(false);
-  const [notifications, setNotifications] = useState(NOTIFICATIONS);
+  const [notifications, setNotifications] = useState<Notification[]>([]);
   const [activeCategory, setActiveCategory] = useState<TipCategory>('all');
   const [savedTips, setSavedTips] = useState<string[]>([]);
   const [readNotifications, setReadNotifications] = useState<string[]>([]);
-  const [tips, setTips] = useState(STUDY_TIPS);
+  const [tips, setTips] = useState<Tip[]>([]);
   const [dataLoaded, setDataLoaded] = useState(false);
 
   // trigger one-time load: fetch from DB when online, otherwise load from local storage
@@ -276,21 +213,6 @@ export default function ExtrasScreen() {
     // run once
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
-
-  // Temporary admin access function for development
-  const handleAdminAccess = async () => {
-    try {
-      await account.deleteSession('current');
-    } catch (e) {
-      // ignore if no session
-      console.log('No active session to delete.', e);
-    }
-    await SecureStore.deleteItemAsync('admin_token');
-    await SecureStore.deleteItemAsync('user_token');
-    setUser(null);
-    // Directly navigate to admin login screen
-    router.replace('/admin/login');
-  };
 
   const filteredTips = activeCategory === 'all'
     ? tips
@@ -476,7 +398,7 @@ export default function ExtrasScreen() {
       <Text style={styles.sectionTitle}>Settings</Text>
 
       {/* Admin Access Button */}
-      <TouchableOpacity
+      {/* <TouchableOpacity
         style={[styles.settingItem, { marginBottom: 16 }]}
         onPress={handleAdminAccess}
       >
@@ -488,7 +410,7 @@ export default function ExtrasScreen() {
           <Text style={styles.settingDescription}>Access admin controls</Text>
         </View>
         <Ionicons name="chevron-forward" size={20} color="#94a3b8" />
-      </TouchableOpacity>
+      </TouchableOpacity> */}
 
       <SettingItem
         icon="notifications"
@@ -503,7 +425,12 @@ export default function ExtrasScreen() {
         onPress={() => { }}
       />
 
-      <View>
+      <SettingItem
+      icon='person-outline'
+      title='My Profile'
+      onPress={() => router.push("/admin/profile")}
+      />
+      {/* <View>
         {user ? (
           <View style={styles.settingItem}>
             <Text>User: {user.name}</Text>
@@ -514,19 +441,19 @@ export default function ExtrasScreen() {
             <Text>User: Not signed in</Text>
           </View>
         )}
-      </View>
+      </View> */}
       <TouchableOpacity
         style={styles.logoutButton}
         onPress={handleLogout}
       >
         <Text style={styles.logoutText}>Log Out</Text>
       </TouchableOpacity>
-      <TouchableOpacity
+      {/* <TouchableOpacity
         onPress={() => router.push('/(auth)/signin')}
         style={{ marginTop: 20, alignItems: 'center' }}
       >
         <Text style={{ color: '#4A6FA5', fontWeight: '500' }}>Go to Login By force</Text>
-      </TouchableOpacity>
+      </TouchableOpacity> */}
     </View>
   );
 
@@ -601,7 +528,7 @@ const NotificationItem = ({
   notification,
   onPress
 }: {
-  notification: typeof NOTIFICATIONS[0];
+  notification: Notification;
   onPress: () => void;
 }) => (
   <TouchableOpacity

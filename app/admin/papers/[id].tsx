@@ -76,7 +76,7 @@ export default function PaperDetailScreen() {
   const handleView = () => {
     console.log("Viewing paper with ID:", paper.$id);
     console.log("File ID:", paper.fileId);
-    router.push(`/View/${id}/`);
+    router.push(`/${paper.$id}/PaperView` as any);
   };
 
   if (loading) {

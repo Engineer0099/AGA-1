@@ -1,19 +1,22 @@
+import { databases } from "@/lib/appwrite";
 import { useLocalSearchParams } from "expo-router";
 import React, { useEffect, useState } from "react";
-import { ActivityIndicator, Dimensions, StyleSheet, Text, View } from "react-native";
-import Pdf from "react-native-pdf";
+import { ActivityIndicator, Dimensions, Image, StyleSheet, Text, View } from "react-native";
+//import Pdf from "react-native-pdf";
+//import PDFViewer from "@/components/PDFViewer";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { WebView } from "react-native-webview";
+
 
 const endpoint = "https://fra.cloud.appwrite.io/v1";
 const projectId = "68ca4989003b47647dea";
 const databaseId = "68ca66480039a017b799";
 const bucketId = "68d2174c0000e21e68f0";
 
-function FileViewer() {
+export default function PaperView() {
   const { id } = useLocalSearchParams();
   const [fileId, setFileId] = useState<string | null>(null);
-  const [mimeType, setMimeType] = useState<string | null>(null);
+  const [fileType, setFileType] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -21,22 +24,20 @@ function FileViewer() {
 
     const fetchFileFromDatabase = async () => {
       try {
-        // Get document info from Appwrite database
-        const response = await fetch(
-          `${endpoint}/databases/${databaseId}/collections/files/documents/${id}`,
-          {
-            headers: {
-              "X-Appwrite-Project": projectId,
-            },
-          }
+        // 1️⃣ Get document info from Appwrite database
+        const response = await databases.getDocument(
+          databaseId,
+          "past_paper",
+          id as string
         );
+        console.log("Database response:", response);
 
-        const data = await response.json();
+        const data = response;
 
         if (data && data.$id) {
-          // Extract fileId and mimeType
+          // 2️⃣ Extract fileId and mimeType
           setFileId(data.fileId);
-          setMimeType(data.mimeType);
+          setFileType(data.fileType);
         } else {
           console.warn("Document not found or invalid data:", data);
         }
@@ -59,7 +60,7 @@ function FileViewer() {
     );
   }
 
-  if (!fileId || !mimeType) {
+  if (!fileId || !fileType) {
     return (
       <SafeAreaView style={styles.center}>
         <Text>File not found in database.</Text>
@@ -67,35 +68,40 @@ function FileViewer() {
     );
   }
 
-  // Build Appwrite file view URL (stream, not download)
+  // 3️⃣ Build Appwrite file view URL (stream, not download)
+  //const previewUrl = `${endpoint}/storage/buckets/${bucketId}/files/${fileId}/preview?project=${projectId}&width=1024&height=1024`;
   const fileUrl = `${endpoint}/storage/buckets/${bucketId}/files/${fileId}/view?project=${projectId}`;
+  const fileUrl2 = `https://docs.google.com/gview?url=${encodeURIComponent(fileUrl)}&embedded=true` as string;
 
-  // Display based on file type
-  if (mimeType.toLowerCase().includes("pdf")) {
+
+  // 4️⃣ Display based on file type
+  if (fileType.toLowerCase().includes("pdf")) {
     return (
-      <View style={styles.container}>
-        <Pdf
-          source={{ uri: fileUrl, cache: true }}
+      <SafeAreaView style={styles.container}>
+        <WebView
+          source={{ uri: fileUrl2 }}
           style={styles.pdf}
-          onError={(error) => console.log("PDF load error:", error)}
+          startInLoadingState
+          renderLoading={() => <ActivityIndicator size="large" style={{flex: 1, justifyContent: "center", alignItems: "center"}} />}
         />
-      </View>
+      </SafeAreaView>
     );
-  } else if (mimeType.startsWith("image/")) {
+  } else if (fileType.toLowerCase().includes("image")) {
     return (
       <SafeAreaView style={styles.center}>
-        <img
-          src={fileUrl}
-          alt="Document Image"
+        <Image
+          source={{ uri: fileUrl }}
+          accessibilityLabel="Document Image"
           style={styles.image}
+          resizeMode="contain"
         />
       </SafeAreaView>
     );
   } else if (
-    mimeType.includes("msword") ||
-    mimeType.includes("presentation") ||
-    mimeType.includes("spreadsheet") ||
-    mimeType.includes("officedocument")
+    fileType.includes("DOC") ||
+    fileType.includes("PPTX") ||
+    fileType.includes("XLSX") ||
+    fileType.includes("officedocument")
   ) {
     // DOCX, PPTX, XLSX — use Microsoft Office online viewer
     return (
@@ -113,13 +119,11 @@ function FileViewer() {
     // Fallback for any unknown format
     return (
       <SafeAreaView style={styles.center}>
-        <Text>Unsupported file format: {mimeType}</Text>
+        <Text>Unsupported file format: {fileType}</Text>
       </SafeAreaView>
     );
   }
 }
-
-export default FileViewer;
 
 const styles = StyleSheet.create({
   container: { flex: 1 },

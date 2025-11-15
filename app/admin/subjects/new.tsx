@@ -109,6 +109,7 @@ const NewSubjectScreen = () => {
                     <Picker.Item label='Short Course' value="short-course" />
                     <Picker.Item label='College' value="college" />
                     <Picker.Item label="University" value="university" />  
+                    <Picker.Item label='Ujasiliamali' value="ujasiliamali" />
                 </Picker>
                 <TouchableOpacity
                     onPress={handleSubmit}

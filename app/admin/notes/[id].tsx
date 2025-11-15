@@ -97,7 +97,7 @@ const NoteDetailScreen = () => {
     }
 
     console.log("Viewing note with ID:", note.id);
-    router.push(`/admin/tips/${note.id}/view` as any);
+    router.push(`/${note.id}/NotesView` as any);
   };
 
   const handleDownload = () => {

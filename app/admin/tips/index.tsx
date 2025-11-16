@@ -1,5 +1,4 @@
-import { databases } from '@/lib/appwrite';
-import { isOnline } from '@/utils/online';
+import { fetchAllDocuments, isOnline } from '@/utils/util';
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useRouter } from 'expo-router';
@@ -37,8 +36,8 @@ const TipsScreen = () => {
   // load Published tips from appwrite database
   const loadPublishedTipsFromDatabase = async () => {
     try {
-      const response = await databases.listDocuments('68ca66480039a017b799', 'study_tip');
-      const fetchedTips = response?.documents?.map((doc: any) => ({
+      const response = await fetchAllDocuments('68ca66480039a017b799', 'study_tip');
+      const fetchedTips = response?.map((doc: any) => ({
         id: doc.$id,
         title: doc.title,
         content: doc.content,
@@ -64,37 +63,6 @@ const TipsScreen = () => {
       return [];
     }
   };
-
-  //load Draft Tips from database
-  // const loadDraftTipsFromDatabase = async () => {
-  //   try {
-  //     const response = await databases.listDocuments('68ca66480039a017b799', 'draft_tip');
-  //     const fetchedTips = response.documents.map((doc: any) => ({
-  //       id: doc.$id,
-  //       title: doc.title,
-  //       content: doc.content,
-  //       category: doc.category,
-  //       status: 'draft', // Assuming all fetched tips are drafts
-  //       createdAt: doc.$createdAt,
-  //       updatedAt: doc.$updatedAt,
-  //     }));
-  //     return fetchedTips
-  //   } catch (error) {
-  //     console.error('Error fetching draft tips:', error);
-  //     return [];
-  //   }
-  // };
-
-  //load Draft Tips from local storage
-  // const loadDraftTipsLocally = async () => {
-  //   try {
-  //     const storedTips = await AsyncStorage.getItem('draft_tips');
-  //     return storedTips ? JSON.parse(storedTips) : [];
-  //   } catch (error) {
-  //     console.error('Error loading draft tips from local storage:', error);
-  //     return [];
-  //   }
-  // };
 
   // Load tips on refresh
   useEffect(() => {

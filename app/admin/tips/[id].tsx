@@ -1,4 +1,4 @@
-import { databases } from '@/lib/appwrite';
+import { deleteDocumentById, fetchDocumentsWithQuery } from '@/utils/util';
 import { Ionicons } from '@expo/vector-icons';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useEffect, useState } from 'react';
@@ -34,14 +34,14 @@ const TipDetailScreen = () => {
   useEffect(() => {
     const fetchTip = async () => {
       try {
-        const study_tips = await databases.listDocuments({
-          databaseId: '68ca66480039a017b799',
-          collectionId: 'study_tip',
-          queries: [
+        const study_tips = await fetchDocumentsWithQuery(
+          '68ca66480039a017b799',
+          'study_tip',
+          [
             Query.equal('$id', id)
           ]
-        });
-        const fetchedTip = study_tips?.documents?.map((doc: any) => ({
+        );
+        const fetchedTip = study_tips?.map((doc: any) => ({
           id: doc.$id,
           title: doc.title,
           content: doc.content,
@@ -68,7 +68,7 @@ const TipDetailScreen = () => {
   };
 
   const handleEdit = () => {
-    router.push(`/View/${id}/`);
+    router.push(`/${id}/editTip` as any);
   };
 
   const handleDelete = () => {
@@ -85,7 +85,7 @@ const TipDetailScreen = () => {
           style: 'destructive',
           onPress: async () => {
             try {
-              await databases.deleteDocument(
+              await deleteDocumentById(
                 '68ca66480039a017b799',
                 'study_tip', 
                 id as string

@@ -1,5 +1,5 @@
 import { useUser } from '@/hooks/useUser';
-import { databases } from '@/lib/appwrite';
+import { fetchDocumentById, isOnline } from '@/utils/util';
 import { Ionicons } from '@expo/vector-icons';
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useEffect, useState } from 'react';
@@ -33,7 +33,7 @@ type Note = {
 //Function to Fetch Notes by Id From database
 const fetchNoteById = async (id: string): Promise<Note | null> => {
   try {
-    const doc = await databases.getDocument('68ca66480039a017b799', 'notes', id);
+    const doc = await fetchDocumentById('68ca66480039a017b799', 'notes', id);
 
     return {
       id: doc.$id,
@@ -100,8 +100,12 @@ const NoteDetailScreen = () => {
     router.push(`/${note.id}/NotesView` as any);
   };
 
-  const handleDownload = () => {
+  const handleDownload = async () => {
     // Implement download functionality
+    if (await isOnline() === false) {
+      Alert.alert('Offline', 'You are currently offline. Please connect to the internet to download the note.');
+      return;
+    }
     if (user?.plan === 'free'){
       Alert.alert("Download", "You can't download because you're in free plan. Please Subscribe to download.");
     } else {

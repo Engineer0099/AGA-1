@@ -51,7 +51,7 @@ const TabBarIcon: React.FC<TabBarIconProps> = ({ name, color, focused }) => {
 export default function TabLayout() {
   usePreventScreenCapture();
   const colorScheme = useColorScheme();
-  const colors = Colors[colorScheme ?? 'light'];
+  //const colors = Colors[colorScheme ?? 'light'];
 
   return (
     <Tabs
@@ -82,7 +82,7 @@ export default function TabLayout() {
         name="library"
         options={{
           title: 'Library',
-          tabBarIcon: ({ color, focused }) => (
+          tabBarIcon: ({ color, focused }: { color: string; focused: boolean }) => (
             <TabBarIcon name="library" color={color} focused={focused} />
           ),
         }}
@@ -91,7 +91,7 @@ export default function TabLayout() {
         name="subscription"
         options={{
           title: 'Premium',
-          tabBarIcon: ({ color, focused }) => (
+          tabBarIcon: ({ color, focused }: { color: string; focused: boolean }) => (
             <TabBarIcon name="subscription" color={color} focused={focused} />
           ),
         }}
@@ -100,7 +100,7 @@ export default function TabLayout() {
         name="extras"
         options={{
           title: 'Extras',
-          tabBarIcon: ({ color, focused }) => (
+          tabBarIcon: ({ color, focused }: { color: string; focused: boolean }) => (
             <TabBarIcon name="extras" color={color} focused={focused} />
           ),
         }}

@@ -1,4 +1,5 @@
 import { useUser } from '@/hooks/useUser';
+import { createDocument, fetchDocumentsWithQuery } from '@/utils/util';
 import { Ionicons } from '@expo/vector-icons';
 import { Picker } from '@react-native-picker/picker';
 import * as DocumentPicker from 'expo-document-picker';
@@ -7,7 +8,7 @@ import { useEffect, useState } from 'react';
 import { ActivityIndicator, Alert, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { ID, Query } from 'react-native-appwrite';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { databases, storage } from '../../../lib/appwrite';
+import { storage } from '../../../lib/appwrite';
 
 type NotesForm = {
   title: string;
@@ -109,10 +110,9 @@ export default function NewNotesScreen() {
         fileId: fileData.$id.trim(),
       };
 
-      await databases.createDocument(
+      await createDocument(
         '68ca66480039a017b799',
         'notes',
-        ID.unique(),
         notesData
       );
 
@@ -130,14 +130,14 @@ export default function NewNotesScreen() {
     form.subject = '';
     const fetchSubjects = async () => {
       try {
-        const response = await databases.listDocuments(
+        const response = await fetchDocumentsWithQuery(
           '68ca66480039a017b799',
           'subject',
           [
             Query.equal('grade', form.grade)
           ]
         );
-        setSubjects(response.documents.map(doc => doc.name) as any);
+        setSubjects(response.map(doc => doc.name) as any);
       } catch (error) {
         console.error('Error fetching subjects:', error);
       }
@@ -152,14 +152,14 @@ export default function NewNotesScreen() {
   useEffect( () => {
     const fetchTopics = async () => {
       try {
-        const response = await databases.listDocuments(
+        const response = await fetchDocumentsWithQuery(
           '68ca66480039a017b799',
           'topic',
           [
             Query.equal('subject', form.subject)
           ]
         );
-        setTopics(response.documents.map(doc => doc.title) as any);
+        setTopics(response.map(doc => doc.title) as any);
         
       } catch (error) {
         console.error('Error fetching subjects:', error);

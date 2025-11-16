@@ -1,5 +1,6 @@
 import { useUser } from '@/hooks/useUser';
-import { account, databases } from '@/lib/appwrite';
+import { account } from '@/lib/appwrite';
+import { fetchDocumentById } from '@/utils/util';
 import { router } from 'expo-router';
 import * as SecureStorage from 'expo-secure-store';
 import { useEffect } from 'react';
@@ -38,7 +39,7 @@ export default function SplashScreen() {
           user = await account.get(); // online
           let doc;
           try {
-            doc = await databases.getDocument("68ca66480039a017b799", "user", user.$id);
+            doc = await fetchDocumentById("68ca66480039a017b799", "user", user.$id);
           } catch (err) {
             console.warn("Failed to fetch user profile:", err);
           }

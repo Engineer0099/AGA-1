@@ -1,5 +1,5 @@
-import { databases } from '@/lib/appwrite';
-import { isOnline } from '@/utils/online';
+import { useUser } from '@/hooks/useUser';
+import { fetchDocumentById, isOnline } from '@/utils/util';
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useLocalSearchParams, useRouter } from 'expo-router';
@@ -13,12 +13,14 @@ export default function PaperDetailScreen() {
   const router = useRouter();
   const [paper, setPaper] = useState<any | null>(null);
   const [loading, setLoading] = useState(true);
+  const [online, setOnline] = useState<boolean>(true);
+  const {user} = useUser();
 
 
   //Load paper with paper id from DB
   const loadPaperByIdFromDB = async () => {
     try{
-        const loadedPaper = await databases.getDocument(
+        const loadedPaper = await fetchDocumentById(
         '68ca66480039a017b799',
         'past_paper',
         id as string
@@ -46,7 +48,7 @@ export default function PaperDetailScreen() {
   useEffect( () => {
     setLoading(true);
     (async() => {
-      const online = await isOnline();
+      setOnline(await isOnline());
       let loadedPapers = [];
       try {
         if (online) {
@@ -70,7 +72,23 @@ export default function PaperDetailScreen() {
   };
 
   const handleDownload = () => {
-    Alert.alert('Download', 'Starting download...');
+    if(user?.plan === 'free'){
+      Alert.alert('Upgrade Required', 'Downloading papers is available for Premium users only. Please upgrade your plan to access this feature.');
+      return;
+    }else if(!paper?.fileId){
+      Alert.alert('File Not Available', 'The file for this paper is not available for download.');
+      return;
+    }else if(!paper){
+      Alert.alert('Paper Not Loaded', 'The paper details are not fully loaded yet. Please try again later.');
+      return;
+    }else if(!online){
+      Alert.alert('Offline', 'You are currently offline. Please connect to the internet to download the paper.');
+      return;
+    }else{
+      console.log("Downloading paper with ID:", paper.$id);
+      console.log("File ID:", paper.fileId);
+      Alert.alert('Download', 'The download feature is not implemented yet.');
+    }
   };
 
   const handleView = () => {

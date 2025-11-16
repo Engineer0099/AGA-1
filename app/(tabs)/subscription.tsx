@@ -242,7 +242,7 @@ export default function SubscriptionScreen() {
         {renderFAQSection()}
         
         <View style={styles.footer}>
-          <Text style={styles.footerText}>Questions? Contact naziresia@gmail.com</Text>
+          <Text style={styles.footerText}>Questions? Contact support@aga.com</Text>
           <Text style={[styles.footerText, { marginTop: 8 }]}>© 2025 KISO. All rights reserved.</Text>
         </View>
       </ScrollView>

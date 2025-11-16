@@ -1,10 +1,12 @@
 import { useUser } from '@/hooks/useUser';
 import { account, databases } from '@/lib/appwrite';
+import { fetchDocumentById, isOnline } from '@/utils/util';
 import { router, useLocalSearchParams } from 'expo-router';
 import * as SecureStore from 'expo-secure-store';
 import { useState } from 'react';
 import { ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { ID, Permission, Role } from 'react-native-appwrite';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 
 type SchoolLevel = 'primary' | 'secondary' | 'university';
@@ -45,12 +47,18 @@ export default function SignUpScreen() {
     
     if (!formData.email) {
       newErrors.email = 'Email is required';
-    } else if (!/\S+@\S+\.\S+/.test(formData.email)) {
-      newErrors.email = 'Please enter a valid email';
+    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
+      if (formData.email !== formData.phone + "@aga.com") {
+        newErrors.email = 'Please enter a valid email address';
+      }else{
+        formData.email = formData.phone + "@aga.com";
+      }
     }
-    
+
     if (!formData.phone) {
       newErrors.phone = 'Phone number is required';
+    } else if (formData.phone.length  !== 13) {
+      newErrors.phone = 'Please enter a valid Phone Number i.e, (0612345678)';
     }
     
     if (!formData.password) {
@@ -69,21 +77,39 @@ export default function SignUpScreen() {
 
 
 const handleSignUp = async () => {
+  if ( await isOnline() === false ) {
+    setErrors({ general: "No internet connection. Please try again later." });
+    return;
+  }
+  if (formData.phone.startsWith('0') && formData.phone.length === 10) {
+    formData.phone = formData.phone.substring(1);
+  }
+  if (!formData.phone.startsWith('+255')) {
+    formData.phone = '+255' + formData.phone;
+  }
+
+  if (formData.email) {
+    formData.email = formData.email.toLowerCase().trim();
+  }else{
+    formData.email = formData.phone + "@aga.com";
+  }
+  
   if (!validateForm()) return;
 
   setIsLoading(true);
   try {
+    const fakeEmail = `${formData.phone}@aga.com`;
     // 1. Create account
     const user = await account.create(
       ID.unique(),
-      formData.email,
+      fakeEmail,
       formData.password,
       formData.fullName
     );
 
     // 2. Create session
     const session = await account.createEmailPasswordSession(
-      formData.email,
+      fakeEmail,
       formData.password
     );
     console.log("Appwrite session:", session);
@@ -113,7 +139,7 @@ const handleSignUp = async () => {
     // 4. Fetch user profile (merge account + db doc)
     let doc;
     try {
-      doc = await databases.getDocument("68ca66480039a017b799", "user", user.$id);
+      doc = await fetchDocumentById("68ca66480039a017b799", "user", user.$id);
     } catch (err) {
       console.warn("Failed to fetch user profile:", err);
     }
@@ -135,13 +161,9 @@ const handleSignUp = async () => {
 
     console.log("User signed up and logged in:", user);
 
-    // 6. Redirect (free users -> home, others -> payment)
+    //6. Navigate to main app
     setIsLoading(false);
-    if (doc?.plan === "free") {
-      router.replace("/(tabs)/library");
-    } else {
-      router.push("/(auth)/payment");
-    }
+    router.replace('/(tabs)/library');
   } catch (err: any) {
     console.error("Sign up error:", err);
     setIsLoading(false);
@@ -172,18 +194,22 @@ const handleSignUp = async () => {
   };
 
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={styles.container}>
       <ScrollView contentContainerStyle={styles.scrollContent}>
         <Text style={styles.title}>Create Account</Text>
         <Text style={styles.subtitle}>Selected: {getLevelName()}</Text>
         
         <View style={styles.formGroup}>
-          <Text style={styles.label}>Full Name</Text>
+          <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+            <Text style={styles.label}>Full Name</Text>
+            <Text style={styles.required}> *</Text>
+          </View>
+          
           <TextInput
             style={[styles.input, errors.fullName && styles.inputError]}
             placeholder="John Doe"
             value={formData.fullName}
-            onChangeText={(text) => handleInputChange('fullName', text)}
+            onChangeText={(text) => handleInputChange('fullName', text.trim())}
             autoCapitalize="words"
           />
           {errors.fullName && <Text style={styles.errorText}>{errors.fullName}</Text>}
@@ -197,37 +223,46 @@ const handleSignUp = async () => {
             keyboardType="email-address"
             autoCapitalize="none"
             value={formData.email}
-            onChangeText={(text) => handleInputChange('email', text)}
+            onChangeText={(text) => handleInputChange('email', text.trim())}
           />
           {errors.email && <Text style={styles.errorText}>{errors.email}</Text>}
         </View>
         
         <View style={styles.formGroup}>
-          <Text style={styles.label}>Phone Number</Text>
+          <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+            <Text style={styles.label}>Phone Number</Text>
+            <Text style={styles.required}> *</Text>
+          </View>
           <TextInput
             style={[styles.input, errors.phone && styles.inputError]}
             placeholder="+255 123 456 789"
             keyboardType="phone-pad"
             value={formData.phone}
-            onChangeText={(text) => handleInputChange('phone', text)}
+            onChangeText={(text) => handleInputChange('phone', text.trim())}
           />
           {errors.phone && <Text style={styles.errorText}>{errors.phone}</Text>}
         </View>
         
         <View style={styles.formGroup}>
-          <Text style={styles.label}>Password</Text>
+          <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+            <Text style={styles.label}>Password</Text>
+            <Text style={styles.required}> *</Text>
+          </View>
           <TextInput
             style={[styles.input, errors.password && styles.inputError]}
             placeholder="••••••••"
             secureTextEntry
             value={formData.password}
-            onChangeText={(text) => handleInputChange('password', text)}
+            onChangeText={(text) => handleInputChange('password', text.trim())}
           />
           {errors.password && <Text style={styles.errorText}>{errors.password}</Text>}
         </View>
         
         <View style={styles.formGroup}>
-          <Text style={styles.label}>Confirm Password</Text>
+          <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+            <Text style={styles.label}>Confirm Password</Text>
+            <Text style={styles.required}> *</Text>
+          </View>
           <TextInput
             style={[styles.input, errors.confirmPassword && styles.inputError]}
             placeholder="••••••••"
@@ -262,7 +297,7 @@ const handleSignUp = async () => {
           </TouchableOpacity>
         </View>
       </View>
-    </View>
+    </SafeAreaView>
   );
 }
 
@@ -275,6 +310,9 @@ const styles = StyleSheet.create({
     flexGrow: 1,
     padding: 20,
     paddingTop: 20,
+  },
+  required: {
+    color: '#DC2626',
   },
   title: {
     fontSize: 24,

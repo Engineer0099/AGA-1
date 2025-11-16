@@ -1,4 +1,4 @@
-import { databases } from '@/lib/appwrite';
+import { createDocument } from '@/utils/util';
 import { Ionicons } from '@expo/vector-icons';
 import { Picker } from '@react-native-picker/picker';
 import { useRouter } from 'expo-router';
@@ -14,7 +14,6 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
-import { ID } from 'react-native-appwrite';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 
@@ -54,10 +53,9 @@ const NewTipScreen = () => {
         content: formData.content,
         category: formData.category,
       };
-        await databases.createDocument(
+        await createDocument(
           '68ca66480039a017b799',
           'study_tip',
-          ID.unique(),
           newTip
         );
       Alert.alert('Success', 'Tip created successfully!', [

@@ -1,4 +1,4 @@
-import { databases } from '@/lib/appwrite';
+import { fetchDocumentsWithQuery, updateDocumentById } from '@/utils/util';
 import { Ionicons } from '@expo/vector-icons';
 import { router, useLocalSearchParams } from 'expo-router';
 import React, { useEffect, useState } from 'react';
@@ -29,14 +29,14 @@ const EditProfile = () => {
         }
         ( async() => {
             try{
-                const study_tip = await databases.listDocuments(
+                const study_tip = await fetchDocumentsWithQuery(
                     '68ca66480039a017b799',
                     'study_tip',
                      [
                         Query.equal("$id", id)
                     ]
                 )
-                const fetchedTip = study_tip?.documents?.map((doc: any) => ({
+                const fetchedTip = study_tip?.map((doc: any) => ({
                     id: doc.$id,
                     title: doc.title,
                     content: doc.content,
@@ -77,7 +77,7 @@ const EditProfile = () => {
             }
 
             
-            const updatedTip = await databases.updateDocument(
+            const updatedTip = await updateDocumentById(
                 '68ca66480039a017b799',
                 'study_tip',
                 id as any,

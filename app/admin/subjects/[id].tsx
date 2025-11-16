@@ -1,12 +1,10 @@
 import { useUser } from '@/hooks/useUser';
-import { databases } from '@/lib/appwrite';
-import { isOnline } from '@/utils/online';
+import { createDocument, fetchAllDocuments, fetchDocumentById, isOnline } from '@/utils/util';
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { ActivityIndicator, Modal, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
-import { ID } from 'react-native-appwrite';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 
@@ -63,10 +61,9 @@ const SubjectDetailsScreen = () => {
             creater: user?.name,
         };
         try {
-            await databases.createDocument(
+            await createDocument(
               '68ca66480039a017b799',
               'topic',
-              ID.unique(),
               topicData
             );
             setIsVisible(false);
@@ -97,7 +94,7 @@ const SubjectDetailsScreen = () => {
                 return;
             }
             try {
-                const response = await databases.getDocument('68ca66480039a017b799', 'subject', subjectId);
+                const response = await fetchDocumentById('68ca66480039a017b799', 'subject', subjectId);
                 setSubject(response);
             } catch (err) {
                 console.error('Error fetching subject:', err);
@@ -125,8 +122,8 @@ const SubjectDetailsScreen = () => {
           }
 
           // List all topics and filter client-side for this subject (by name or id)
-          const res: any = await databases.listDocuments('68ca66480039a017b799', 'topic');
-          const docs: any[] = res?.documents ?? [];
+          const res: any = await fetchAllDocuments('68ca66480039a017b799', 'topic');
+          const docs: any[] = res ?? [];
 
           const filtered = docs.filter(
             (t) =>
@@ -158,8 +155,8 @@ const SubjectDetailsScreen = () => {
           }
 
           // List all topics and filter client-side for this subject (by name or id)
-          const res: any = await databases.listDocuments('68ca66480039a017b799', 'past_paper');
-          const docs: any[] = res?.documents ?? [];
+          const res: any = await fetchAllDocuments('68ca66480039a017b799', 'past_paper');
+          const docs: any[] = res ?? [];
 
           const filtered = docs.filter(
             (t) =>

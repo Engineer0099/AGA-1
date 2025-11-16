@@ -1,4 +1,4 @@
-import { databases } from "@/lib/appwrite";
+import { fetchDocumentById } from "@/utils/util";
 import { useLocalSearchParams } from "expo-router";
 import React, { useEffect, useState } from "react";
 import { ActivityIndicator, Dimensions, Image, StyleSheet, Text, View } from "react-native";
@@ -25,7 +25,7 @@ export default function PaperView() {
     const fetchFileFromDatabase = async () => {
       try {
         // 1️⃣ Get document info from Appwrite database
-        const response = await databases.getDocument(
+        const response = await fetchDocumentById(
           databaseId,
           "notes",
           id as string

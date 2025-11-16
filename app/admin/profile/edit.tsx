@@ -1,24 +1,27 @@
 import { useUser } from '@/hooks/useUser';
-import { databases } from '@/lib/appwrite';
+import { account } from '@/lib/appwrite';
+import { updateDocumentById } from '@/utils/util';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
-import React from 'react';
-import { ActivityIndicator, Alert, KeyboardAvoidingView, Platform, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { useState } from 'react';
+import { ActivityIndicator, Alert, KeyboardAvoidingView, Modal, Platform, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 
 const EditProfile = () => {
     const { user, setUser } = useUser();
-    const [loading, setLoading] = React.useState(false);
-    const [newData, setNewData] = React.useState({
+    const [loading, setLoading] = useState(false);
+    const [newData, setNewData] = useState({
         name: user?.name || '',
         email: user?.email || '',
         bio: user?.bio || '',
-        Phone: user?.phone || '',
+        phone: user?.phone || '',
     });
-
+    const [modalVisible, setModalVisible] = useState(false);
+    const[password, setPassword] = useState('');
+    
     const validation = () => {
-        if ((newData.name.trim() === user?.name) && (newData.email.trim() === user?.email) && (newData.bio.trim() === user?.bio) && (newData.Phone.trim() === user?.phone)) {
+        if ((newData.name.trim() === user?.name) && (newData.email.trim() === user?.email) && (newData.bio.trim() === user?.bio) && (newData.phone.trim() === user?.phone)) {
             Alert.alert('Info', 'No changes made to the profile.');
             return false;
         }
@@ -32,6 +35,35 @@ const EditProfile = () => {
         }
         return true;
     };
+    const getFakeEmail = () => {
+        let phone = newData.phone;
+        if (phone.startsWith('0') && phone.length === 10) {
+            phone = phone.substring(1);
+        }
+        if (!phone.startsWith('+255')) {
+            phone = '+255' + phone;
+        }
+        return phone + '@aga.com';
+    }
+
+    const changeAuthPhoneNumber = async (newPhone: string, password: string) => {
+        try {
+            if (!user) throw new Error('User not found');
+            if (!password) {
+                Alert.alert('Error', 'Password is required to change phone number.');
+                newData.phone = user.phone || '';
+                return;
+            }
+            
+            const fakeEmail = getFakeEmail();
+            await account.updateEmail(fakeEmail, password);
+        } catch (error) {
+            console.error('Failed to update phone number in auth system:', error);
+            Alert.alert('Error', 'Failed to update phone number. Please ensure your password is correct.');
+            newData.phone = user?.phone || '';
+        }
+    };
+
     const HandleSubmit = async () => {
         // update to the database
         setLoading(true);
@@ -51,12 +83,13 @@ const EditProfile = () => {
             if(user.bio !== newData.bio){
                 updatedData = {...updatedData, bio: newData.bio}
             }   
-            if(user.phone !== newData.Phone){
-                updatedData = {...updatedData, phone: newData.Phone}
+            if(user.phone !== newData.phone){
+                updatedData = {...updatedData, phone: newData.phone}
+                // Ask For if User Change Phone Number To Change it in Auth System Too
+                setModalVisible(true);
             }
-
-            
-            const updatedUser = await databases.updateDocument(
+        
+            const updatedUser = await updateDocumentById(
                 '68ca66480039a017b799',
                 'user',
                 user.id,
@@ -86,8 +119,56 @@ const EditProfile = () => {
     }
     return(
         <KeyboardAvoidingView behavior={Platform.OS === "android" ? "padding" : "height"} style={{ flex: 1 }}>
-            <SafeAreaView style={styles.container}>
-
+            <Modal 
+            visible={modalVisible} 
+            animationType="slide" 
+            transparent={true} 
+            onRequestClose={
+                () => {
+                    setModalVisible(false);
+                    setPassword('');
+                    newData.phone = user.phone || '';
+                }
+                }
+            >
+                <View style={styles.container}>
+                    <Text style={styles.sectionTitle}>Confirm Your Password</Text>
+                    <Text style={styles.value}>To change your phone number, please confirm your password.</Text>
+                    <View style={[styles.section, { marginTop: 100 }]}>
+                        <Text style={styles.sectionTitle}>Confirm Password</Text>
+                        <TextInput
+                            style={styles.input}
+                            placeholder="Enter your password"
+                            secureTextEntry
+                            value={password}
+                            onChangeText={setPassword}
+                        />
+                        <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginTop: 16 }}>
+                            <TouchableOpacity
+                                style={[styles.logoutButton, { backgroundColor: '#F87171' }]}   
+                                onPress={() => { {
+                                    setModalVisible(false);
+                                    setPassword('');
+                                    newData.phone = user.phone || '';
+                                } }}
+                            >
+                                <Text style={[styles.logoutButtonText, { color: '#FFFFFF' }]}>Cancel</Text>
+                            </TouchableOpacity>
+                            <TouchableOpacity
+                                style={styles.logoutButton}
+                                onPress={async () => {
+                                    await changeAuthPhoneNumber(newData.phone, password);
+                                    setModalVisible(false);
+                                    setPassword('');
+                                }}
+                            >
+                                <Text style={styles.logoutButtonText}>Confirm</Text>
+                            </TouchableOpacity>
+                        </View>
+                    </View>
+                </View>
+                </Modal>
+                <SafeAreaView style={styles.container}>
                 <View style={styles.header}>
                     <Ionicons name="person-circle-outline" size={100} color="#6d9bdbff" />
                     <View style={{ alignItems: 'center', marginTop: 8 }}>
@@ -127,11 +208,11 @@ const EditProfile = () => {
                     <Text style={styles.label}>Phone</Text>
                     <TextInput
                         style={styles.input}
-                        value={newData.Phone || ''}
+                        value={newData.phone || ''}
                         placeholder="Enter your phone number"
                         keyboardType="phone-pad"
                         editable={true} 
-                        onChangeText={(text) => setNewData({ ...newData, Phone: text })}
+                        onChangeText={(text) => setNewData({ ...newData, phone: text })}
                     />
                     <TouchableOpacity style={[styles.logoutButton, { marginTop: 16 }]} onPress={HandleSubmit}>
                         {loading ? (

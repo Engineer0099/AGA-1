@@ -1,11 +1,10 @@
 import { useUser } from '@/hooks/useUser';
-import { databases } from "@/lib/appwrite";
+import { createDocument } from '@/utils/util';
 import { Ionicons } from "@expo/vector-icons";
 import { Picker } from '@react-native-picker/picker';
 import { useRouter } from "expo-router";
 import { useState } from "react";
 import { ActivityIndicator, Alert, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
-import { ID } from "react-native-appwrite";
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 
@@ -34,14 +33,13 @@ const NewSubjectScreen = () => {
                 creater: user?.name || 'unknown',
                 no_of_topics: 0
             };
-            await databases.createDocument(
+            await createDocument(
                 '68ca66480039a017b799',
                 'subject',
-                ID.unique(),
                 newSubject
             );
             Alert.alert('Success', 'Subject created successfully');
-            router.push('/admin/subjects');
+            router.back();
         } catch (error) {
             console.error('Error creating subject:', error);
             Alert.alert('Error', 'There was an error creating the subject');

@@ -1,5 +1,6 @@
 import { useUser } from '@/hooks/useUser';
-import { account, databases } from '@/lib/appwrite';
+import { account } from '@/lib/appwrite';
+import { fetchDocumentById } from '@/utils/util';
 import { router } from 'expo-router';
 import * as SecureStore from 'expo-secure-store';
 import { useState } from 'react';
@@ -7,7 +8,7 @@ import { Alert, KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text, Te
 
 export default function SignInScreen() {
   const [formData, setFormData] = useState({
-    email: '',
+    phone: '',
     password: '',
   });
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -31,16 +32,16 @@ export default function SignInScreen() {
   const validateForm = () => {
     const newErrors: Record<string, string> = {};
     
-    if (!formData.email) {
-      newErrors.email = 'Email is required';
-    } else if (!/\S+@\S+\.\S+/.test(formData.email)) {
-      newErrors.email = 'Please enter a valid email';
+    if (!formData.phone) {
+      newErrors.phone = 'Phone Number is required';
+    } else if (formData.phone.length  !== 13) {
+      newErrors.phone = 'Please enter a valid Phone Number i.e, (0612345678)';
     }
     
     if (!formData.password) {
       newErrors.password = 'Password is required';
-    } else if (formData.password.length < 6) {
-      newErrors.password = 'Password must be at least 6 characters';
+    } else if (formData.password.length < 8) {
+      newErrors.password = 'Password must be at least 8 characters';
     }
     
     setErrors(newErrors);
@@ -48,32 +49,41 @@ export default function SignInScreen() {
   };
   
   const handleSignIn = async () => {
+    if (formData.phone.startsWith('0') && formData.phone.length === 10) {
+      formData.phone = formData.phone.substring(1);
+    }
+    if (!formData.phone.startsWith('+255')) {
+      formData.phone = '+255' + formData.phone;
+    }
     if (validateForm()) {
       setIsLoading(true);
       try {
         // Create an Appwrite email session and fetch the logged-in user
-        const session = await account.createEmailPasswordSession(formData.email, formData.password);
-        console.log('Appwrite session:', session);
-
+        const fakeEmail = `${formData.phone}@aga.com`;
+        await account.createEmailPasswordSession(fakeEmail, formData.password);
+        
         const user = await account.get()
 
         let doc;
         try {
-          doc = await databases.getDocument("68ca66480039a017b799", "user", user.$id);
+          doc = await fetchDocumentById("68ca66480039a017b799", "user", user.$id);
         } catch (err) {
           console.warn("Failed to fetch user profile:", err);
         }
 
-        const mappedRole: "admin" | "teacher" | "student" =
+        const mappedRole: "admin" | "student" =
           doc?.role === "admin" || doc?.role === "teacher" || doc?.role === "student"
             ? doc.role
             : "student";
 
         setUser({
-          id: user.$id,
-          name: user.name ?? "User",
-          email: user.email,
+          id: doc.$id,
+          name: doc.name ?? "User",
+          email: doc.email,
           role: mappedRole,
+          phone: doc.phone ?? '',
+          bio: doc.bio ?? '',
+          plan: doc.plan ?? 'free',
         });
 
         
@@ -83,12 +93,11 @@ export default function SignInScreen() {
         if (isAdmin) {
           // For admin users, store token and navigate to admin dashboard
           await SecureStore.setItemAsync('admin_token', user.$id);
-          router.replace('/admin'); 
         } else {
           // For regular users, navigate to the main app tabs
           await SecureStore.setItemAsync('user_token', user.$id);
-          router.replace('/(tabs)/library');
         }
+        router.replace('/(tabs)/library');
       } catch (error) {
         console.error('Sign in error:', error);
         Alert.alert('Error', 'Failed to sign in. Please try again.');
@@ -107,16 +116,16 @@ export default function SignInScreen() {
         <Text style={styles.subtitle}>Sign in to continue to your account</Text>
         
         <View style={styles.formGroup}>
-          <Text style={styles.label}>Email</Text>
+          <Text style={styles.label}>Phone Number</Text>
           <TextInput
-            style={[styles.input, errors.email && styles.inputError]}
-            placeholder="your@email.com"
-            keyboardType="email-address"
+            style={[styles.input, errors.phone && styles.inputError]}
+            placeholder="your phone number (e.g., 0612345678)"
+            keyboardType="phone-pad"
             autoCapitalize="none"
-            value={formData.email}
-            onChangeText={(text) => handleInputChange('email', text)}
+            value={formData.phone}
+            onChangeText={(text) => handleInputChange('phone', text.trim())}
           />
-          {errors.email && <Text style={styles.errorText}>{errors.email}</Text>}
+          {errors.phone && <Text style={styles.errorText}>{errors.phone}</Text>}
         </View>
         
         <View style={styles.formGroup}>
@@ -131,7 +140,7 @@ export default function SignInScreen() {
             placeholder="••••••••"
             secureTextEntry
             value={formData.password}
-            onChangeText={(text) => handleInputChange('password', text)}
+            onChangeText={(text) => handleInputChange('password', text.trim())}
           />
           {errors.password && <Text style={styles.errorText}>{errors.password}</Text>}
         </View>

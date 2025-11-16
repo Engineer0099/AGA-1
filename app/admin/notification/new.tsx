@@ -1,19 +1,18 @@
-import { databases } from '@/lib/appwrite';
+import { createDocument } from '@/utils/util';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import React, { useState } from 'react';
 import {
-    Alert,
-    KeyboardAvoidingView,
-    Platform,
-    ScrollView,
-    StyleSheet,
-    Text,
-    TextInput,
-    TouchableOpacity,
-    View,
+  Alert,
+  KeyboardAvoidingView,
+  Platform,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
 } from 'react-native';
-import { ID } from 'react-native-appwrite';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 
@@ -50,10 +49,9 @@ const NewNotificationScreen = () => {
         title: formData.title,
         message: formData.message,
       };
-        await databases.createDocument(
+        await createDocument(
           '68ca66480039a017b799',
           'notification',
-          ID.unique(),
           newNotification
         );
       Alert.alert('Success', 'Notification created successfully!', [

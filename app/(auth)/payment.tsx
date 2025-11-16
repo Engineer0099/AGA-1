@@ -1,9 +1,9 @@
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { router, useLocalSearchParams } from 'expo-router';
+import { router } from 'expo-router';
 import { useState } from 'react';
 import { ActivityIndicator, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
-import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 const PREMIUM_PLAN = {
   id: 'premium_monthly',
@@ -28,8 +28,8 @@ const PAYMENT_METHODS = [
 ];
 
 export default function PaymentScreen() {
-  const { level } = useLocalSearchParams<{ level: string }>();
-  const insets = useSafeAreaInsets();
+  //const { level } = useLocalSearchParams<{ level: string }>();
+  //const insets = useSafeAreaInsets();
   const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<string>('mpesa');
   const [isProcessing, setIsProcessing] = useState(false);
 

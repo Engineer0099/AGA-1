@@ -1,4 +1,4 @@
-import { account, databases } from '@/lib/appwrite';
+import { account } from '@/lib/appwrite';
 import { Ionicons, MaterialIcons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { router } from 'expo-router';
@@ -7,7 +7,7 @@ import { useEffect, useState } from 'react';
 import { ActivityIndicator, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useUser } from '../../hooks/useUser';
-import { isOnline } from '../../utils/online';
+import { fetchAllDocuments, isOnline } from '../../utils/util';
 
 // Define types for tips and notifications
 type TipCategory = 'all' | 'study' | 'exam' | 'motivation' | 'other';
@@ -73,9 +73,9 @@ const loadSavedTipsLocally = async (): Promise<string[] | null> => {
 // load tips from appwrite database
 const fetchTipsFromDatabase = async (): Promise<Tip[]> => {
   try {
-    const response = await databases.listDocuments('68ca66480039a017b799', 'study_tip');
+    const response = await fetchAllDocuments('68ca66480039a017b799', 'study_tip');
     // Cast via unknown first to satisfy TypeScript when the external SDK returns a generic document type.
-    return response.documents as unknown as Tip[];
+    return response as unknown as Tip[];
   } catch (error) {
     console.error('Error fetching tips from database:', error);
     return [];
@@ -125,9 +125,9 @@ const loadNotificationsLocally = async (): Promise<Notification[] | null> => {
 // load notifications from appwrite database
 const fetchNotificationsFromDatabase = async (): Promise<Notification[]> => {
   try {
-    const response = await databases.listDocuments('68ca66480039a017b799', 'notification');
+    const response = await fetchAllDocuments('68ca66480039a017b799', 'notification');
     // Cast via unknown first to satisfy TypeScript when the external SDK returns a generic document type.
-    return response.documents as unknown as Notification[];
+    return response as unknown as Notification[];
   } catch (error) {
     console.error('Error fetching notifications from database:', error);
     return [];
@@ -138,7 +138,7 @@ const fetchNotificationsFromDatabase = async (): Promise<Notification[]> => {
 
 export default function ExtrasScreen() {
   const [activeTab, setActiveTab] = useState<'tips' | 'notifications' | 'settings'>('tips');
-  const { setUser } = useUser();
+  const { user, setUser } = useUser();
   const [isLoading, setIsLoading] = useState(false);
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [activeCategory, setActiveCategory] = useState<TipCategory>('all');
@@ -146,6 +146,7 @@ export default function ExtrasScreen() {
   const [readNotifications, setReadNotifications] = useState<string[]>([]);
   const [tips, setTips] = useState<Tip[]>([]);
   const [dataLoaded, setDataLoaded] = useState(false);
+  const [notificationValue, setNotificationValue] = useState(true);
 
   // trigger one-time load: fetch from DB when online, otherwise load from local storage
   useEffect(() => {
@@ -412,17 +413,25 @@ export default function ExtrasScreen() {
         <Ionicons name="chevron-forward" size={20} color="#94a3b8" />
       </TouchableOpacity> */}
 
+      {user?.role === 'admin' && (
+        <SettingItem
+          icon="shield-checkmark"
+          title="Admin Dashboard"
+          onPress={() => router.replace("/admin")}
+        />
+      )}
+
       <SettingItem
         icon="notifications"
         title="Notifications"
-        value="On"
-        onPress={() => { }}
+        value={notificationValue ? 'On' : 'Off'}
+        onPress={() => { setNotificationValue(!notificationValue) }}
       />
 
       <SettingItem
         icon="help"
         title="Help & Support"
-        onPress={() => { }}
+        onPress={() => router.push("/extras/HelpAndSupport")}
       />
 
       <SettingItem

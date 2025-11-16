@@ -1,6 +1,5 @@
 import { useUser } from '@/hooks/useUser';
-import { databases } from '@/lib/appwrite';
-import { isOnline } from '@/utils/online';
+import { fetchAllDocuments, isOnline } from '@/utils/util';
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useRouter } from 'expo-router';
@@ -47,10 +46,10 @@ const NotesScreen = () => {
   //Load notes from Database
   const LoadNotesFromDb = async (): Promise<Note[]> => {
     try{
-      const loadedData = await databases.listDocuments('68ca66480039a017b799', 'notes');
+      const loadedData = await fetchAllDocuments('68ca66480039a017b799', 'notes');
       // appwrite returns { documents: [...] } — fall back to loadedData if shape differs
-      const docs = (loadedData as any).documents ?? (loadedData as any);
-      const notesArray = (docs as Note[]) || [];
+      //const docs = (loadedData as any).documents ?? (loadedData as any);
+      const notesArray = (loadedData as Note[]) || [];
       setNotes(notesArray);
       return notesArray;
     } catch(err) {

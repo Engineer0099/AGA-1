@@ -1,5 +1,6 @@
 import { useUser } from '@/hooks/useUser';
-import { account, databases } from '@/lib/appwrite';
+import { account } from '@/lib/appwrite';
+import { fetchDocumentById } from '@/utils/util';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import * as SecureStore from 'expo-secure-store';
@@ -46,7 +47,7 @@ export default function AdminLogin() {
 
         let doc;
         try {
-          doc = await databases.getDocument("68ca66480039a017b799", "user", user.$id);
+          doc = await fetchDocumentById("68ca66480039a017b799", "user", user.$id);
         } catch (err) {
           console.warn("Failed to fetch user profile:", err);
         }
@@ -63,7 +64,7 @@ export default function AdminLogin() {
           role: mappedRole,
         };
         await saveUserLocally(localUser);
-        setUser(localUser);
+        setUser(localUser as any);
 
         // Check email to determine user role
         const isAdmin = mappedRole === "admin";

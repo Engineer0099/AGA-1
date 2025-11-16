@@ -1,4 +1,4 @@
-import { databases } from '@/lib/appwrite';
+import { fetchDocumentById, updateDocumentById } from '@/utils/util';
 import { Ionicons } from '@expo/vector-icons';
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
@@ -27,7 +27,7 @@ const UserDetailScreen = () => {
 
   const loadUserByIdFromDB = async () => {
     try{
-        const loadedPaper = await databases.getDocument(
+        const loadedPaper = await fetchDocumentById(
         '68ca66480039a017b799',
         'user',
         id as string
@@ -64,17 +64,17 @@ const UserDetailScreen = () => {
   };
 
 
-  const handleEdit = () => {
-    setEditing(!editing);
-    // In a real app, this would open an edit form
-  };
+  // const handleEdit = () => {
+  //   setEditing(!editing);
+  //   // In a real app, this would open an edit form
+  // };
 
   const handleStatusChange = async (newStatus: 'true' | 'false') => {
     const status = newStatus === 'true' ? true : false;
     if (user) {
       try {
         setLoading(true);
-        const updatedStatus = await databases.updateDocument(
+        const updatedStatus = await updateDocumentById(
           '68ca66480039a017b799',
           'user',
           id as string,
@@ -96,7 +96,7 @@ const UserDetailScreen = () => {
     if (user) {
       try {
         setLoading(true);
-        const updatedUser = await databases.updateDocument(
+        const updatedUser = await updateDocumentById(
           '68ca66480039a017b799',
           'user',
           id as string,
@@ -189,9 +189,9 @@ const UserDetailScreen = () => {
             <Ionicons name="person-circle" size={80} color="#9CA3AF" />
           </View>
           <Text style={styles.userName}>{user.name}</Text>
-          <View style={[styles.statusBadge, { backgroundColor: getStatusColor(user.active) + '20' }]}>
-            <View style={[styles.statusDot, { backgroundColor: getStatusColor(user.active) }]} />
-            <Text style={[styles.statusText, { color: getStatusColor(user.active) }]}>
+          <View style={[styles.statusBadge, { backgroundColor: getStatusColor(user.active ? true : false) + '20' }]}>
+            <View style={[styles.statusDot, { backgroundColor: getStatusColor(user.active ? true : false) }]} />
+            <Text style={[styles.statusText, { color: getStatusColor(user.active ? true : false) }]}>
               {user.active ? 'Active' : 'Suspended'}
             </Text>
           </View>

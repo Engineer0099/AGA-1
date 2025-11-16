@@ -1,16 +1,16 @@
-import { databases } from '@/lib/appwrite';
+import { deleteDocumentById, fetchDocumentsWithQuery } from '@/utils/util';
 import { Ionicons } from '@expo/vector-icons';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useEffect, useState } from 'react';
 import {
-    ActivityIndicator,
-    Alert,
-    ScrollView,
-    Share,
-    StyleSheet,
-    Text,
-    TouchableOpacity,
-    View
+  ActivityIndicator,
+  Alert,
+  ScrollView,
+  Share,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View
 } from 'react-native';
 import { Query } from 'react-native-appwrite';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -33,17 +33,17 @@ const NotificationDetailScreen = () => {
   useEffect(() => {
     const fetchNotification = async () => {
       try {
-        const notification = await databases.listDocuments({
-          databaseId: '68ca66480039a017b799',
-          collectionId: 'notification',
-          queries: [
+        const notification = await fetchDocumentsWithQuery(
+          '68ca66480039a017b799',
+          'notification',
+          [
             Query.equal('$id', id)
           ]
-        });
-        const fetchedNotification = notification?.documents?.map((doc: any) => ({
+        );
+        const fetchedNotification = notification?.map((doc: any) => ({
           id: doc.$id,
           title: doc.title,
-          content: doc.message,
+          content: doc.content,
           $createdAt: doc.$createdAt,
           $updatedAt: doc.$updatedAt,
         }))
@@ -65,7 +65,7 @@ const NotificationDetailScreen = () => {
   };
 
   const handleEdit = () => {
-    router.push(`/admin/tips/${id}/editNotification`);
+    router.push(`/${id}/editNotification` as any);
   };
 
   const handleDelete = () => {
@@ -82,7 +82,7 @@ const NotificationDetailScreen = () => {
           style: 'destructive',
           onPress: async () => {
             try {
-              await databases.deleteDocument(
+              await deleteDocumentById(
                 '68ca66480039a017b799',
                 'notification', 
                 id as string

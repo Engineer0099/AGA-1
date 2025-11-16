@@ -1,6 +1,5 @@
 import { useUser } from '@/hooks/useUser';
-import { databases } from '@/lib/appwrite';
-import { isOnline } from '@/utils/online';
+import { fetchAllDocuments, isOnline } from '@/utils/util';
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useRouter } from 'expo-router';
@@ -46,13 +45,13 @@ const UsersScreen = () => {
       const online = await isOnline();
       try {
         if(online){
-          const res = await databases.listDocuments("68ca66480039a017b799", "user");
+          const res = await fetchAllDocuments("68ca66480039a017b799", "user");
           // Save to local storage
-          await AsyncStorage.setItem('users', JSON.stringify(res.documents));
+          await AsyncStorage.setItem('users', JSON.stringify(res));
 
           if (!mounted) return;
   
-          const docs = Array.isArray((res as any).documents) ? (res as any).documents : [];
+          const docs = Array.isArray((res as any)) ? (res as any) : [];
           // Map Appwrite documents to your local User type; adjust field names to match your collection
           const mapped: User[] = docs.map((d: any) => ({
             id: d.$id ?? d.id,

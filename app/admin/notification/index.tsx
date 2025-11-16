@@ -1,5 +1,4 @@
-import { databases } from '@/lib/appwrite';
-import { isOnline } from '@/utils/online';
+import { fetchAllDocuments, isOnline } from '@/utils/util';
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useRouter } from 'expo-router';
@@ -33,8 +32,8 @@ const NotificationScreen = () => {
   // load Published Notifications from appwrite database
   const loadNotificationsFromDatabase = async () => {
     try {
-      const response = await databases.listDocuments('68ca66480039a017b799', 'notification');
-      const fetchedNotifications = response?.documents?.map((doc: any) => ({
+      const response = await fetchAllDocuments('68ca66480039a017b799', 'notification');
+      const fetchedNotifications = response?.map((doc: any) => ({
         id: doc.$id,
         title: doc.title,
         content: doc.message,

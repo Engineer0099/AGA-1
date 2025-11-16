@@ -1,6 +1,5 @@
 import { useUser } from '@/hooks/useUser';
-import { databases } from '@/lib/appwrite';
-import { isOnline } from '@/utils/online';
+import { fetchAllDocuments, isOnline } from '@/utils/util';
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useRouter } from 'expo-router';
@@ -13,6 +12,8 @@ type Subject = {
     id: string;
     name: string;
     grade: string;
+    creater: string;
+    no_of_topics: number;
     createdAt: string;
     updatedAt: string;
 };
@@ -37,8 +38,8 @@ const SubjectScreen = () => {
   // load subject from appwrite database
   const loadSubjectFromDatabase = async () => {
     try {
-      const response = await databases.listDocuments('68ca66480039a017b799', 'subject');
-      const fetchedSubjects = response?.documents?.map((doc: any) => ({
+      const response = await fetchAllDocuments('68ca66480039a017b799', 'subject');
+      const fetchedSubjects = response?.map((doc: any) => ({
         id: doc.$id,
         name: doc.name,
         grade: doc.grade,
@@ -117,7 +118,6 @@ const SubjectScreen = () => {
     }
     return matchesSearch;
   });
-  console.log("Hey ",subjectData, filteredSubjects)
 
   const handleSubjectPress = (subjectId: string) => {
     router.push(`/admin/subjects/${subjectId}`);
@@ -195,7 +195,7 @@ const SubjectScreen = () => {
             <Text style={[styles.filterText, !selectedGrade && styles.filterTextActive]}>All Grades</Text>
           </TouchableOpacity>
           }
-          {user?.role === 'admin' && ['standard_4' , 'standard_7' , 'form-2', 'form-4', 'form-6', 'university' ].map(grade => (
+          {user?.role === 'admin' && ['standard_4' , 'standard_7' , 'form-2', 'form-4', 'form-6', 'short-course', 'college', 'university', 'ujasiliamali' ].map(grade => (
             <TouchableOpacity 
               key={grade}
               style={[styles.filterPill, selectedGrade === grade && styles.filterPillActive]}

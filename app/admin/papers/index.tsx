@@ -1,5 +1,4 @@
-import { databases } from '@/lib/appwrite';
-import { isOnline } from '@/utils/online';
+import { fetchAllDocuments, isOnline } from '@/utils/util';
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useRouter } from 'expo-router';
@@ -52,11 +51,11 @@ const PapersScreen = () => {
   // load papers from appwrite database
   const loadPapersFromDB = async () => {
     try {
-      const pappersFromDB = await databases.listDocuments(
+      const pappersFromDB = await fetchAllDocuments(
         '68ca66480039a017b799',
         'past_paper',
       );
-      return pappersFromDB.documents;
+      return pappersFromDB as Paper[];
     } catch (error) {
       console.error('Error loading papers from Appwrite:', error);
       return [];

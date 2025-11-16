@@ -1,8 +1,11 @@
 import { useUser } from '@/hooks/useUser';
+import { fetchDocumentCount, fetchRecentActivityLogs } from '@/utils/util';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import { usePreventScreenCapture } from 'expo-screen-capture';
+import { useEffect, useState } from 'react';
 import { Dimensions, FlatList, ScrollView, StyleSheet, Text, TouchableOpacity, View, ViewStyle } from 'react-native';
+import { ActivityIndicator } from 'react-native-paper';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 const { width } = Dimensions.get('window');
@@ -24,23 +27,81 @@ type StatItem = {
   trendValue?: string;
 };
 
+type RecentActivity = {
+  id: string;
+  action: string;
+  subject: string;
+  time: string;
+  icon?: keyof typeof Ionicons.glyphMap;
+  iconColor?: string;
+};
+
 const DashboardScreen = () => {
   usePreventScreenCapture();
-  //const insets = useSafeAreaInsets();
+  const [totalUsers , setTotalUsers] = useState<string | null>(null);
+  const [totalSubjects , setTotalSubjects] = useState<string | null>(null);
+  const [totalPapers , setTotalPapers] = useState<string | null>(null);
+  const [totalNotifications , setTotalNotifications] = useState<string | null>(null);
+  const [recentActivities, setRecentActivities] = useState<RecentActivity[] | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
   const { user } = useUser();
 
-  // const handleLogout = async () => {
-  //   try {
-  //     await SecureStore.deleteItemAsync('admin_token');
-  //     await account.deleteSession('current');
-  //     setUser(null);
-  //     router.replace('/admin/login');
-  //   } catch (error) {
-  //     console.error('Logout error:', error);
-  //     Alert.alert('Error', 'Failed to log out. Please try again.');
-  //   }
-  // };
+  const getTimeAgo = (timestamp: string): string => {
+    const now = new Date();
+    const past = new Date(timestamp);
+    const diffInMs = now.getTime() - past.getTime();
+    const diffInMinutes = Math.floor(diffInMs / (1000 * 60));
+    if (diffInMinutes < 60) {
+      return `${diffInMinutes} minutes ago`;
+    } else if (diffInMinutes < 1440) {
+      const hours = Math.floor(diffInMinutes / 60);
+      return `${hours} hours ago`;
+    } else {
+      const days = Math.floor(diffInMinutes / 1440);
+      return `${days} days ago`;
+    }
+  };
 
+  const getTimeInterval = (timestamp: string): number => {
+    const now = new Date();
+    const past = new Date(timestamp);
+    return now.getTime() - past.getTime();
+  };
+
+  // Fetch total users count on mount
+  useEffect(() => {
+    const fetchCounts = async () => {
+      setIsLoading(true); 
+      const userCount = await fetchDocumentCount('68ca66480039a017b799', 'user');
+      setTotalUsers(userCount?.toString() || '0');
+
+      const subjectCount = await fetchDocumentCount('68ca66480039a017b799', 'subject');
+      setTotalSubjects(subjectCount?.toString() || '0');
+
+      const paperCount = await fetchDocumentCount('68ca66480039a017b799', 'past_paper');
+      setTotalPapers(paperCount?.toString() || '0');
+
+      const notificationCount = await fetchDocumentCount('68ca66480039a017b799', 'notification');
+      setTotalNotifications(notificationCount?.toString() || '0');
+
+      let activities: RecentActivity[] = [];
+      const usersLogs = await fetchRecentActivityLogs('68ca66480039a017b799', 'user');
+      activities = activities.concat(usersLogs.map(log => ({ ...log, action: 'New user registered', time: log.$createdAt, subject: log.email })));
+      const papersLogs = await fetchRecentActivityLogs('68ca66480039a017b799', 'past_paper');
+      activities = activities.concat(papersLogs.map(log => ({ ...log, action: 'Paper uploaded', time: log.$createdAt })));
+      const notesLogs = await fetchRecentActivityLogs('68ca66480039a017b799', 'notes');
+      activities = activities.concat(notesLogs.map(log => ({ ...log, action: 'Note updated', time: log.$createdAt })));
+      
+
+      // Sort activities by time (assuming time is in a format that can be compared as strings)
+      activities.sort((a, b) => (getTimeInterval(a.time) > getTimeInterval(b.time) ? 1 : -1));
+        
+      // Limit to 5 recent activities
+      setRecentActivities(activities.slice(0, 5));
+      setIsLoading(false);
+    };
+    fetchCounts();
+  }, []);
   // Quick actions data with valid routes
   const quickActions: QuickAction[] = [
     { 
@@ -91,7 +152,7 @@ const DashboardScreen = () => {
   const stats: StatItem[] = [
     { 
       label: 'Active Users', 
-      value: '1,234', 
+      value: totalUsers as string || '0', 
       icon: 'people-outline', 
       color: '#4F46E5',
       trend: 'up',
@@ -99,7 +160,7 @@ const DashboardScreen = () => {
     },
     { 
       label: 'Total Subjects', 
-      value: '24', 
+      value: totalSubjects as string || '0', 
       icon: 'book-outline', 
       color: '#10B981',
       trend: 'up',
@@ -107,7 +168,7 @@ const DashboardScreen = () => {
     },
     { 
       label: 'Past Papers', 
-      value: '156', 
+      value: totalPapers as string || '0', 
       icon: 'document-text-outline', 
       color: '#F59E0B',
       trend: 'up',
@@ -115,7 +176,7 @@ const DashboardScreen = () => {
     },
     { 
       label: 'Notifications', 
-      value: '48', 
+      value: totalNotifications as string || '0', 
       icon: 'notifications-outline', 
       color: '#EC4899',
       trend: 'down',
@@ -123,26 +184,26 @@ const DashboardScreen = () => {
     },
   ];
 
-  const recentActivities = [
-    { 
-      id: '1', 
-      action: 'New user registered', 
-      subject: 'john.doe@example.com', 
-      time: '2 hours ago',
-      icon: 'person-add',
-      iconColor: '#3b82f6'
-    },
-    { 
-      id: '2', 
-      action: 'Paper uploaded', 
-      subject: 'Mathematics 2023 Final', 
-      time: '5 hours ago',
-      icon: 'document-attach',
-      iconColor: '#10b981'
-    },
-    { id: '3', action: 'Note updated', subject: 'Chemistry Basics', time: '1 day ago' },
-    { id: '4', action: 'Subscription renewed', subject: 'Premium Plan', time: '2 days ago' },
-  ];
+  // const recentActivities: RecentActivity[] = [
+  //   { 
+  //     id: '1', 
+  //     action: 'New user registered', 
+  //     subject: 'john.doe@example.com', 
+  //     time: '2 hours ago',
+  //     icon: 'person-add',
+  //     iconColor: '#3b82f6'
+  //   },
+  //   { 
+  //     id: '2', 
+  //     action: 'Paper uploaded', 
+  //     subject: 'Mathematics 2023 Final', 
+  //     time: '5 hours ago',
+  //     icon: 'document-attach',
+  //     iconColor: '#10b981'
+  //   },
+  //   { id: '3', action: 'Note updated', subject: 'Chemistry Basics', time: '1 day ago' },
+  //   { id: '4', action: 'Subscription renewed', subject: 'Premium Plan', time: '2 days ago' },
+  // ];
 
   // Define activity icon colors
   const getActivityIconColor = (action: string): string => {
@@ -259,7 +320,12 @@ const DashboardScreen = () => {
             </TouchableOpacity>
           </View>
           <View style={styles.activitiesList}>
-            {recentActivities.map((activity, index) => {
+            {isLoading ? (
+              <View>
+                <Text>Loading activities...</Text>
+                <ActivityIndicator size="small" color="#4A6FA5" />
+              </View>
+            ) :recentActivities?.map((activity, index) => {
               const iconColor = getActivityIconColor(activity.action);
               return (
                 <View key={index} style={styles.activityItem}>
@@ -270,7 +336,7 @@ const DashboardScreen = () => {
                     <Text style={styles.activityAction}>{activity.action}</Text>
                     <Text style={styles.activitySubject}>{activity.subject}</Text>
                   </View>
-                  <Text style={styles.activityTime}>{activity.time}</Text>
+                  <Text style={styles.activityTime}>{getTimeAgo(activity.time)}</Text>
                 </View>
               );
             })}
